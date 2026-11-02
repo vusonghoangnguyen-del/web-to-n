@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2efe5">
+  <meta name="description" content="Tờ Toán — đọc, gửi và cùng thảo luận những bài toán hay.">
+  <title>Tờ Toán — Cộng đồng yêu toán</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#noi-dung">Đi tới nội dung</a>
+  <div class="paper-noise" aria-hidden="true"></div>
+  <header class="topbar"><div class="topbar-inner">
+    <p id="today-label">Tờ Toán</p><p class="edition">Bài toán · Lời giải · Thảo luận</p>
+    <div class="account-actions"><a class="plain-button" id="admin-open" href="/admin.html" hidden>Quản trị</a><button class="plain-button" id="login-open">Đăng nhập</button><button class="ink-button" id="publish-open">+ Đăng bài toán</button></div>
+  </div></header>
+  <header class="masthead"><button class="mobile-menu" aria-expanded="false" aria-controls="main-nav">Mục lục</button><a class="logo" href="/" aria-label="Tờ Toán — về đầu trang"><span class="logo-kicker">Tạp chí cộng đồng</span><strong>TỜ TOÁN</strong><span class="logo-sub">Mỗi bài toán · Một cách nhìn mới</span></a><div class="masthead-mark" aria-hidden="true">∑</div></header>
+  <nav id="main-nav" class="main-nav" aria-label="Điều hướng"><a href="#dau-trang" class="active">Trang nhất</a><a href="#bai-toan">Bài toán</a><a href="#loi-giai">Lời giải</a><a href="#video">Video</a><a href="#ho-so">Hồ sơ</a></nav>
+
+  <main id="noi-dung">
+    <section class="news-strip" id="dau-trang" aria-label="Giới thiệu"><strong>Tờ Toán</strong><div class="ticker"><span>Chọn một bài vừa sức</span><i>◆</i><span>Thử một hướng giải mới</span><i>◆</i><span>Cùng trao đổi với cộng đồng</span></div></section>
+
+    <section class="front-page page-shell home-front">
+      <article class="lead-story" id="tuan-nay"><div class="story-meta"><span class="rubric">Bài mới được chọn</span><span id="lead-date">Từ cộng đồng</span></div><h1 id="lead-title">Mỗi bài toán<br>một câu chuyện.</h1><p class="standfirst" id="lead-summary">Những bài toán đã được duyệt sẽ xuất hiện tại đây. Hãy khám phá kho bài hoặc gửi một thử thách của bạn.</p><div class="lead-illustration" aria-hidden="true"><div class="pie"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><p>Thử nghĩ<br><em>một cách khác?</em></p></div><div class="story-footer"><span class="difficulty medium" id="lead-difficulty">Tờ Toán</span><a class="text-button discussion-link" id="lead-link" href="#bai-toan">Khám phá bài toán <span>→</span></a></div></article>
+      <aside class="hot-column"><header class="section-rule"><h2>Bài mới xuất bản</h2><span>Được tòa soạn duyệt</span></header><ol class="hot-list" id="recent-list"><li><span>—</span><div>Đang tải bài toán…</div></li></ol><div class="editor-note"><strong>Lời tòa soạn</strong><p>Một lời giải hay cần chỉ rõ vì sao từng bước đúng. Mọi hướng tiếp cận và câu hỏi chân thành đều được chào đón.</p></div></aside>
+      <article class="side-feature"><div class="feature-art" aria-hidden="true"><span>∞</span><i>… 1, 2, 3, 5, 8, 13 …</i></div><span class="rubric">Cách tham gia</span><h2>Không chỉ tìm đáp án.</h2><p>Đọc đề, thử giải, gửi lời giải của mình và trao đổi ngay bên trong từng bài.</p><a href="#bai-toan" class="read-link">Tìm bài để thử <span>↗</span></a></article>
+    </section>
+
+    <section class="problem-desk page-shell" id="bai-toan"><header class="desk-header"><div><span class="eyebrow">Kho bài toán</span><h2>Tìm một bài vừa sức,<br>hoặc khó hơn một chút.</h2></div><div class="search-box"><label for="problem-search">Tìm kiếm bài toán</label><div><input id="problem-search" type="search" placeholder="Tiêu đề hoặc nội dung…"><span>⌕</span></div></div></header>
+      <div class="filter-bar" aria-label="Lọc theo chủ đề"><button class="filter active" data-filter="all">Tất cả</button><button class="filter" data-filter="so-hoc">Số học</button><button class="filter" data-filter="hinh-hoc">Hình học</button><button class="filter" data-filter="dai-so">Đại số</button><button class="filter" data-filter="to-hop">Tổ hợp</button><button class="filter" data-filter="logic">Logic</button><button class="filter" data-filter="xac-suat">Xác suất</button></div>
+      <label class="difficulty-filter" for="difficulty-filter">Độ khó <select id="difficulty-filter"><option value="">Mọi mức độ</option><option>Dễ</option><option>Trung bình</option><option>Khó</option><option>Thử thách</option></select></label>
+      <div class="problem-grid" id="problem-grid" aria-live="polite"></div><p class="empty-state" id="empty-state">Chưa có bài phù hợp. Thử từ khóa hoặc chuyên mục khác nhé.</p><button class="outline-button load-more" id="load-more" hidden>Xem thêm bài toán ↓</button>
+    </section>
+
+    <section class="solutions-band" id="loi-giai"><div class="page-shell"><header class="section-rule light"><h2>Lời giải từ cộng đồng</h2><span>Đã được tòa soạn kiểm chứng</span></header><div class="solution-layout home-solution-layout"><article class="solution-main"><span class="quote-mark">“</span><h3>Một lời giải đẹp<br>mở ra cách nghĩ mới.</h3><p>Trình bày từng bước để người khác có thể học và cùng trao đổi.</p><a href="#bai-toan" class="read-link light-link">Chọn một bài để giải <span>→</span></a></article><div class="solution-list" id="featured-solutions"><p class="home-muted">Đang tải lời giải…</p></div></div></div></section>
+
+    <section class="video-section page-shell" id="video"><header class="desk-header compact"><div><span class="eyebrow">Lớp học trên màn hình</span><h2>Video bài giảng</h2></div></header><div class="video-grid" id="video-grid"></div><p class="home-muted" id="video-empty" hidden>Chưa có video. Admin có thể thêm bài giảng trong trang quản trị.</p></section>
+
+    <section class="roadmap page-shell" id="ho-so"><header class="section-rule"><h2>Góc của bạn</h2><span>Bài đăng · Lời giải · Đã lưu</span></header><div id="profile-guest" class="profile-guest"><p>Đăng nhập để theo dõi bài toán, lời giải và những bài muốn quay lại.</p><button class="ink-button" id="profile-login">Đăng nhập / Tạo tài khoản</button></div><div id="profile-content" hidden><div class="profile-head"><p id="profile-name"></p><button class="outline-button" id="profile-logout">Đăng xuất</button></div><div class="profile-columns"><div><h3>Bài toán của tôi</h3><div id="my-problems"></div></div><div><h3>Lời giải của tôi</h3><div id="my-solutions-summary"></div></div><div><h3>Đã lưu để đọc</h3><div id="my-bookmarks"></div></div></div></div></section>
+
+    <section class="newsletter"><div><span class="eyebrow">Danh sách nhận tin</span><h2>Để lại email<br>nếu bạn quan tâm.</h2><p>Chúng tôi sẽ thông báo khi bản tin được triển khai.</p></div><form id="newsletter-form"><label for="newsletter-email">Email đăng ký</label><div><input id="newsletter-email" name="email" type="email" required placeholder="ban@vidu.vn"><button type="submit">Đăng ký →</button></div><p id="newsletter-message" role="status"></p></form></section>
+  </main>
+  <footer class="site-footer"><div class="footer-logo">TỜ TOÁN</div><p>Đọc · Giải · Thảo luận cùng cộng đồng.</p><p>© 2026 · Tờ Toán</p></footer>
+
+  <dialog id="login-dialog" class="modal"><form class="modal-card" id="login-form" data-mode="login"><button type="button" class="modal-close" aria-label="Đóng">×</button><span class="eyebrow">Tài khoản độc giả</span><div class="auth-switch" role="tablist" aria-label="Chọn hình thức tài khoản"><button type="button" class="active" role="tab" aria-selected="true" data-auth-mode="login">Đăng nhập</button><button type="button" role="tab" aria-selected="false" data-auth-mode="register">Tạo tài khoản</button></div><h2 id="auth-title">Đăng nhập Tờ Toán</h2><p id="auth-description">Tiếp tục gửi lời giải, đăng bài và lưu những bài toán bạn yêu thích.</p><label id="auth-name-field" hidden>Tên hiển thị<input name="name" placeholder="Nguyễn Minh" autocomplete="name"></label><label>Email<input name="email" type="email" required placeholder="minh@vidu.vn" autocomplete="email"></label><label>Mật khẩu<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="current-password"></label><button type="submit" class="ink-button full" id="auth-submit">Đăng nhập</button><small>Mật khẩu được bảo vệ trên máy chủ; phiên đăng nhập dùng cookie HTTP-only.</small></form></dialog>
+  <dialog id="publish-dialog" class="modal"><form class="modal-card wide-modal" id="publish-form"><button type="button" class="modal-close" aria-label="Đóng">×</button><span class="eyebrow">Gửi tới tòa soạn</span><h2>Đăng một bài toán</h2><div class="form-grid"><label class="span-two">Tiêu đề<input name="title" required minlength="5" maxlength="255" placeholder="Một tiêu đề ngắn, gợi tò mò"></label><label>Chuyên mục<select name="tag"><option value="so-hoc">Số học</option><option value="hinh-hoc">Hình học</option><option value="dai-so">Đại số</option><option value="to-hop">Tổ hợp</option><option value="logic">Logic</option><option value="xac-suat">Xác suất</option></select></label><label>Độ khó<select name="difficulty"><option>Dễ</option><option>Trung bình</option><option>Khó</option><option>Thử thách</option></select></label><label class="span-two">Đề bài<textarea name="body" required minlength="10" rows="7" placeholder="Viết đề bài đầy đủ, rõ các giả thiết…"></textarea></label><label class="span-two">Nguồn tham khảo (nếu có)<input name="source" maxlength="500" placeholder="Không bắt buộc"></label></div><button class="ink-button full" type="submit">Gửi bài chờ duyệt</button><small>Bài sẽ xuất hiện công khai sau khi được admin duyệt.</small></form></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/script.js"></script>
+</body>
+</html>

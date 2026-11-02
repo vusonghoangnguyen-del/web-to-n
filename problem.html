@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2efe5">
+  <meta name="description" content="Bài toán và thảo luận trên Tờ Toán.">
+  <title>Bài toán — Tờ Toán</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/problem.css">
+</head>
+<body>
+  <a class="skip-link" href="#problem-content">Đi tới bài toán</a>
+  <div class="paper-noise" aria-hidden="true"></div>
+  <header class="topbar"><div class="topbar-inner"><p id="problem-date">Tờ Toán</p><p class="edition">Bài toán · Thảo luận</p><div class="account-actions"><a class="plain-button detail-home-link" href="/">Trang nhất</a><span id="detail-user">Khách</span></div></div></header>
+  <header class="masthead detail-masthead"><a class="logo" href="/"><span class="logo-kicker">Tạp chí cộng đồng</span><strong>TỜ TOÁN</strong><span class="logo-sub">Mỗi bài toán · Một cuộc trò chuyện</span></a><div class="masthead-mark" aria-hidden="true">?</div></header>
+  <nav class="main-nav detail-nav"><a href="/">Trang nhất</a><a href="#de-bai" class="active">Đề bài</a><a href="#loi-giai">Lời giải</a><a href="#thao-luan">Thảo luận</a></nav>
+
+  <main id="problem-content">
+    <section class="problem-loading page-shell" id="problem-loading"><span class="eyebrow">Đang mở bài toán</span><h1>Xin chờ một chút…</h1></section>
+    <div id="problem-page" hidden>
+      <article class="problem-article page-shell" id="de-bai">
+        <header><div class="problem-detail-meta" id="problem-meta"></div><h1 id="problem-title"></h1><p class="problem-byline" id="problem-byline"></p><button class="outline-button" id="detail-bookmark" type="button">☆ Lưu bài toán</button></header>
+        <div class="problem-statement" id="problem-statement"></div>
+        <a class="problem-source" id="problem-source" target="_blank" rel="noopener" hidden>Nguồn tham khảo ↗</a>
+      </article>
+
+      <section class="solutions-detail" id="loi-giai">
+        <div class="page-shell solutions-shell">
+          <header class="solutions-detail-heading"><div><span class="eyebrow">Trình bày từng bước</span><h2>Lời giải cộng đồng</h2></div><strong id="verified-solution-count">0 lời giải đã kiểm chứng</strong></header>
+          <div class="solution-submit-panel">
+            <form id="detail-solution-form" hidden><label for="solution-content">Lời giải của bạn</label><textarea id="solution-content" rows="10" minlength="20" maxlength="10000" required placeholder="Trình bày rõ giả thiết, các bước suy luận và kết luận…"></textarea><div><small>Lời giải sẽ được tòa soạn đọc trước khi công khai.</small><button class="ink-button" type="submit">Gửi lời giải</button></div></form>
+            <p id="solution-login-message">Bạn cần <a id="solution-login-link" href="/?login=1">đăng nhập</a> để gửi lời giải.</p>
+            <div id="my-solutions"></div>
+          </div>
+          <div class="verified-solutions" id="verified-solutions" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="discussion-band" id="thao-luan">
+        <div class="page-shell discussion-shell">
+          <header class="discussion-heading"><div><span class="eyebrow">Cùng tìm lời giải</span><h2>Thảo luận</h2></div><strong id="comment-count">0 bình luận</strong></header>
+          <div class="comment-compose" id="comment-compose">
+            <div class="replying-to" id="replying-to" hidden>Đang trả lời <strong></strong><button type="button" id="cancel-reply">Hủy</button></div>
+            <form id="comment-form" hidden><label for="comment-content">Ý kiến của bạn</label><textarea id="comment-content" rows="5" maxlength="2000" required placeholder="Chia sẻ hướng giải, đặt câu hỏi hoặc góp ý một cách tôn trọng…"></textarea><div><small>Tối đa 2.000 ký tự</small><button class="ink-button" type="submit">Gửi bình luận</button></div></form>
+            <p class="login-to-comment" id="login-to-comment">Bạn cần <a id="login-return-link" href="/?login=1">đăng nhập</a> để tham gia thảo luận.</p>
+          </div>
+          <div class="comments-list" id="comments-list" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div class="toast" id="problem-toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/problem.js"></script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+LỘ TRÌNH PHÁT TRIỂN TỜ TOÁN
+============================
+
+Mục tiêu
+--------
+Xây dựng Tờ Toán từ website hiện tại thành một nền tảng cộng đồng toán học có
+kiến trúc đủ rõ ràng để phát triển lâu dài, hỗ trợ Markdown, MathJax, dự án
+LaTeX, biên dịch PDF, quản trị nội dung và mở rộng khi lượng người dùng tăng.
+
+Nguyên tắc triển khai
+--------------------
+1. Không viết lại toàn bộ hệ thống trong một lần.
+2. Website hiện tại vẫn phải chạy trong quá trình chuyển đổi.
+3. Giữ MySQL và dữ liệu đang có.
+4. Chuyển từng chức năng từ Express sang NestJS và kiểm tra trước khi chuyển tiếp.
+5. Mọi thay đổi database phải có migration.
+6. Bắt đầu bằng modular monolith, chưa tách microservice sớm.
+7. File văn bản như .tex, .bib và .sty có thể lưu trong MySQL.
+8. Ảnh, PDF, ZIP và font lưu ngoài database; MySQL chỉ lưu đường dẫn.
+
+Stack dự kiến
+-------------
+- Frontend: Next.js + TypeScript
+- Backend: NestJS + TypeScript
+- API: REST/JSON, có version /api/v1
+- Database: MySQL
+- ORM: TypeORM và migration
+- Tài liệu API: OpenAPI/Swagger
+- Cache, session nhanh và hàng đợi: Redis
+- Tác vụ nền: BullMQ
+- Công thức web: Markdown + MathJax
+- Biên dịch LaTeX: TeX Live trong container cách ly
+- File storage: thư mục local khi phát triển, S3/MinIO khi triển khai
+- Môi trường: Docker Compose
+
+
+GIAI ĐOẠN 0 - ĐÓNG MỐC VÀ BẢO VỆ HỆ THỐNG HIỆN TẠI
+====================================================
+
+Mục tiêu:
+Có một phiên bản hiện tại đáng tin cậy để so sánh trong quá trình chuyển đổi.
+
+Công việc:
+- Sao lưu database to_toan.
+- Ghi lại cấu trúc database hiện tại.
+- Đảm bảo .env không được đưa lên Git.
+- Kiểm tra các luồng hiện có:
+  + Đăng ký, đăng nhập và đăng xuất.
+  + Đăng bài toán.
+  + Admin duyệt hoặc từ chối bài.
+  + Bình luận và trả lời.
+  + Gửi và duyệt lời giải.
+  + Lưu bài toán.
+  + Quản lý video.
+- Duy trì smoke test cho chuỗi API chính.
+- Khởi tạo Git nếu dự án chưa có repository.
+
+Điều kiện hoàn thành:
+- npm.cmd run check thành công.
+- npm.cmd run build thành công.
+- npm.cmd run smoke thành công.
+- Có file backup MySQL có thể phục hồi.
+
+
+GIAI ĐOẠN 1 - TỔ CHỨC THÀNH MONOREPO
+====================================
+
+Mục tiêu:
+Tách rõ frontend, backend, worker và mã dùng chung nhưng chưa thay đổi hành vi.
+
+Cấu trúc dự kiến:
+
+to-toan/
+|-- apps/
+|   |-- legacy-web/          Frontend hiện tại
+|   |-- legacy-api/          Express hiện tại
+|   |-- api/                 NestJS
+|   |-- web/                 Next.js
+|   `-- workers/
+|       `-- latex/
+|-- packages/
+|   |-- contracts/           Kiểu request/response dùng chung
+|   |-- database/            Entity và migration
+|   |-- config/              Cấu hình TypeScript dùng chung
+|   `-- math-renderer/        Markdown + MathJax
+|-- database/
+|-- storage/
+|-- docker-compose.yml
+`-- package.json
+
+Công việc:
+- Thiết lập npm workspaces hoặc pnpm workspaces.
+- Thêm TypeScript config dùng chung.
+- Di chuyển mã nguồn cũ mà không làm thay đổi chức năng.
+- Tạo lệnh chạy toàn bộ môi trường phát triển.
+
+Điều kiện hoàn thành:
+- Frontend và Express cũ vẫn hoạt động.
+- Có thể cài dependency và chạy dự án từ thư mục gốc.
+
+
+GIAI ĐOẠN 2 - DỰNG NESTJS SONG SONG
+===================================
+
+Mục tiêu:
+Tạo backend mới mà chưa tắt Express.
+
+Cách chạy tạm thời:
+- Express cũ: http://127.0.0.1:3000
+- NestJS mới: http://127.0.0.1:3001
+
+Thiết lập:
+- TypeScript strict mode.
+- API version /api/v1.
+- GET /api/v1/health.
+- Swagger tại /docs.
+- Kiểm tra biến môi trường khi khởi động.
+- Validation request.
+- Error response thống nhất.
+- Log có cấu trúc.
+- Helmet, CORS và rate limit.
+- Unit test và integration test nền tảng.
+
+Điều kiện hoàn thành:
+- NestJS kết nối được MySQL.
+- Health endpoint hoạt động.
+- Swagger hiển thị đúng endpoint và DTO.
+
+
+GIAI ĐOẠN 3 - CHUẨN HÓA DATABASE VÀ MIGRATION
+=============================================
+
+Mục tiêu:
+Quản lý schema database bằng mã nguồn và migration có thể lặp lại.
+
+Entity hiện có:
+- User
+- Category
+- Problem
+- ProblemCategory
+- Solution
+- Comment
+- Bookmark
+- Video
+- NewsletterSubscription
+
+Entity bổ sung dần:
+- Session
+- ProblemRevision
+- Role
+- Permission
+- ModerationAction
+- Notification
+- LatexProject
+- LatexProjectFile
+- LatexAsset
+- LatexBuild
+
+Quy tắc:
+- Không sửa database production bằng tay.
+- Không bật synchronize tự động trong production.
+- Mỗi thay đổi schema có một migration lưu trong Git.
+- Migration phải chạy được trên database trống và database hiện tại.
+- Xem xét created_at, updated_at và deleted_at cho các bảng phù hợp.
+
+Điều kiện hoàn thành:
+- NestJS đọc được toàn bộ dữ liệu hiện có.
+- Migration không làm mất dữ liệu.
+- Có thể dựng database mới chỉ bằng migration và seed.
+
+
+GIAI ĐOẠN 4 - CHUYỂN AUTH VÀ PHÂN QUYỀN
+=======================================
+
+Mục tiêu:
+Chuyển chức năng tài khoản đầu tiên sang NestJS.
+
+API:
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+- POST /api/v1/auth/logout
+- GET  /api/v1/auth/me
+- POST /api/v1/auth/refresh nếu sử dụng refresh token
+
+Hướng session đề xuất:
+- Browser giữ cookie HttpOnly chứa session ID ngẫu nhiên.
+- Backend lưu session trong database.
+- Redis có thể làm cache khi cần.
+- Có thể thu hồi từng session hoặc toàn bộ session của một tài khoản.
+
+Vai trò ban đầu:
+- reader
+- editor
+- moderator
+- admin
+
+Permission có thể bổ sung:
+- problem.create
+- problem.review
+- problem.publish
+- solution.verify
+- comment.moderate
+- user.manage
+- latex.compile
+
+Điều kiện hoàn thành:
+- Đăng ký, đăng nhập, đăng xuất và khôi phục phiên chạy qua NestJS.
+- Admin có thể vô hiệu hóa tài khoản và thu hồi phiên.
+- Frontend hiện tại sử dụng được API auth mới.
+
+
+GIAI ĐOẠN 5 - CHUYỂN CÁC MODULE NGHIỆP VỤ
+=========================================
+
+Thứ tự chuyển:
+
+5.1 Problems
+- Danh sách, chi tiết, tạo, sửa và xóa mềm.
+- Tìm kiếm, lọc, phân trang.
+- Bản nháp và lịch sử chỉnh sửa.
+- Slug cho URL.
+
+5.2 Comments
+- Bình luận, trả lời và sửa bình luận.
+- Xóa mềm.
+- Báo cáo nội dung.
+- Phân trang khi số bình luận lớn.
+
+5.3 Solutions
+- Gửi, sửa và rút lời giải.
+- Admin kiểm chứng.
+- Lịch sử phiên bản.
+- Lời giải nổi bật.
+
+5.4 Bookmarks, reactions và follows
+- Lưu bài toán.
+- Thích bài và lời giải.
+- Theo dõi bài để nhận thông báo.
+
+5.5 Moderation
+- Duyệt bài và lời giải.
+- Ẩn bình luận.
+- Xử lý báo cáo.
+- Ghi audit log cho hành động quản trị.
+
+Cách chuyển:
+- Mỗi module mới dùng endpoint /api/v1.
+- Endpoint Express cũ vẫn giữ trong thời gian kiểm tra.
+- Chỉ bỏ route cũ sau khi frontend đã chuyển và test thành công.
+
+Điều kiện hoàn thành:
+- Express không còn chứa nghiệp vụ chính.
+- Các luồng cũ vẫn hoạt động với dữ liệu hiện tại.
+
+
+GIAI ĐOẠN 6 - CHUYỂN FRONTEND SANG NEXT.JS
+==========================================
+
+Mục tiêu:
+Có frontend TypeScript, component hóa, SEO tốt và dễ mở rộng.
+
+Thứ tự chuyển trang:
+1. Layout, header và footer.
+2. Trang chủ.
+3. Danh sách bài toán.
+4. Chi tiết bài toán.
+5. Đăng nhập và đăng ký.
+6. Hồ sơ cá nhân.
+7. Trang soạn bài.
+8. Trang admin.
+9. Trang dự án LaTeX.
+
+Ưu tiên server rendering cho:
+- Trang bài toán.
+- Danh sách bài.
+- Trang chuyên mục.
+- Hồ sơ công khai.
+
+Điều kiện hoàn thành:
+- Giao diện Next.js thay thế đầy đủ HTML/JavaScript cũ.
+- URL bài viết thân thiện và có metadata SEO.
+- Chức năng không bị giảm so với phiên bản cũ.
+
+
+GIAI ĐOẠN 7 - MARKDOWN VÀ MATHJAX
+================================
+
+Mục tiêu:
+Soạn và hiển thị bài toán giống cách Stack Exchange xử lý nội dung toán học.
+
+Định dạng chuẩn:
+- Markdown cho văn bản, tiêu đề, danh sách, trích dẫn và code.
+- TeX cho công thức trong $...$ hoặc khối $$...$$.
+- MathJax render công thức trên trình duyệt.
+
+Luồng render:
+Markdown nguồn
+  -> Markdown parser với HTML tự do bị tắt
+  -> Làm sạch HTML
+  -> Đưa HTML vào DOM
+  -> MathJax typeset
+
+Editor:
+- Hai cột: nguồn và xem trước.
+- Preview cập nhật sau khi dừng nhập 300-500 ms.
+- Nút nhanh cho phân số, căn, số mũ, tổng, tích phân và ma trận.
+- Hiển thị lỗi công thức dễ hiểu.
+
+Áp dụng cho:
+- Bài toán.
+- Lời giải.
+- Bình luận.
+- Bài viết hướng dẫn.
+
+Điều kiện hoàn thành:
+- Công thức hiển thị nhất quán trong bài, lời giải và bình luận.
+- Người dùng xem trước được trước khi gửi.
+
+
+GIAI ĐOẠN 8 - DỰ ÁN LATEX TRONG MYSQL
+=====================================
+
+Mục tiêu:
+Lưu và chỉnh sửa mã nguồn LaTeX giống một project nhỏ.
+
+Phiên bản đầu:
+- Mỗi bài có một file main.tex.
+- Nội dung .tex lưu trong MySQL bằng MEDIUMTEXT.
+- Có lựa chọn compiler: pdflatex, xelatex hoặc lualatex.
+
+Phiên bản tiếp theo:
+- Nhiều file .tex.
+- File .bib, .sty và .cls.
+- Cây thư mục.
+- Lịch sử chỉnh sửa.
+- Tải project ZIP.
+
+MySQL lưu:
+- Mã nguồn văn bản.
+- Đường dẫn tương đối của từng file.
+- Cấu hình compiler.
+- Trạng thái build.
+- Lịch sử phiên bản.
+
+Storage lưu:
+- Ảnh.
+- Font.
+- PDF kết quả.
+- File ZIP xuất ra.
+
+API dự kiến:
+- POST   /api/v1/latex/projects
+- GET    /api/v1/latex/projects/:id
+- POST   /api/v1/latex/projects/:id/files
+- PUT    /api/v1/latex/projects/:id/files/:fileId
+- DELETE /api/v1/latex/projects/:id/files/:fileId
+- POST   /api/v1/latex/projects/:id/compile
+- GET    /api/v1/latex/projects/:id/builds
+
+Điều kiện hoàn thành:
+- Người dùng tạo, lưu và sửa project LaTeX.
+- Dữ liệu mã nguồn không phụ thuộc PDF đã biên dịch.
+
+
+GIAI ĐOẠN 9 - WORKER BIÊN DỊCH LATEX
+====================================
+
+Mục tiêu:
+Biên dịch LaTeX không làm API chậm hoặc mất an toàn.
+
+Thành phần:
+- Redis.
+- BullMQ.
+- LaTeX worker.
+- TeX Live container.
+- File storage.
+
+Luồng:
+1. API tạo LatexBuild với trạng thái queued.
+2. API đẩy job vào Redis.
+3. Worker nhận job.
+4. Worker lấy file nguồn từ MySQL và storage.
+5. Worker dựng project trong thư mục tạm.
+6. Container TeX Live biên dịch.
+7. Worker lưu PDF và compile log.
+8. Build chuyển sang success hoặc failed.
+9. Frontend nhận trạng thái mới.
+
+Trạng thái build:
+- queued
+- compiling
+- success
+- failed
+- cancelled
+
+Giới hạn an toàn ban đầu:
+- Tắt mạng trong container.
+- Tắt shell escape.
+- Giới hạn một CPU.
+- Giới hạn khoảng 512 MB RAM.
+- Timeout 20-30 giây.
+- Giới hạn kích thước project và PDF.
+- Hủy container sau mỗi job.
+
+Điều kiện hoàn thành:
+- Tài liệu lỗi không làm API treo.
+- Job được cách ly và có log rõ ràng.
+- Có thể chạy nhiều worker khi nhu cầu tăng.
+
+
+GIAI ĐOẠN 10 - PRODUCTION VÀ VẬN HÀNH
+=====================================
+
+Mục tiêu:
+Đưa hệ thống lên môi trường thật với khả năng sao lưu và quan sát.
+
+Công việc:
+- Dockerfile cho web, API và worker.
+- Docker Compose cho local và staging.
+- HTTPS.
+- Cấu hình domain.
+- Backup MySQL tự động.
+- Backup file storage.
+- Log tập trung.
+- Theo dõi lỗi và hiệu năng.
+- Health check cho API, MySQL, Redis và worker.
+- Rate limit theo endpoint và tài khoản.
+- Email xác minh và đặt lại mật khẩu.
+- CI chạy check, test và build.
+- Migration chạy có kiểm soát khi deploy.
+- Chính sách lưu hoặc xóa build LaTeX cũ.
+- Kiểm tra phục hồi từ backup định kỳ.
+
+Chỉ bổ sung khi thật sự cần:
+- Search engine riêng.
+- CDN.
+- Nhiều API instance.
+- Read replica cho MySQL.
+- WebSocket hoặc Server-Sent Events.
+- Tách module thành microservice.
+
+
+BA MỐC TRIỂN KHAI LỚN
+=====================
+
+Mốc 1 - Nền móng backend
+Giai đoạn 0 -> 1 -> 2 -> 3 -> 4
+Kết quả: NestJS, TypeScript, Swagger, migration và auth mới.
+
+Mốc 2 - Web cộng đồng hoàn chỉnh
+Giai đoạn 5 -> 6 -> 7
+Kết quả: bài toán, lời giải, bình luận, hồ sơ, admin và MathJax.
+
+Mốc 3 - Hệ thống LaTeX đầy đủ
+Giai đoạn 8 -> 9 -> 10
+Kết quả: editor nhiều file, TeX Live worker, PDF và hạ tầng production.
+
+
+VIỆC NÊN BẮT ĐẦU NGAY
+=====================
+
+1. Hoàn thành Giai đoạn 0.
+2. Tạo backup database.
+3. Đảm bảo check, build và smoke test đều thành công.
+4. Khởi tạo Git và ghi lại mốc ổn định.
+5. Bắt đầu Giai đoạn 1, chỉ tổ chức lại thư mục và chưa đổi hành vi.
+
+Không triển khai đồng thời Redis, Next.js, NestJS và TeX Live ngay từ ngày đầu.
+Nền móng lớn nằm ở ranh giới module, migration, kiểm thử và hợp đồng API rõ
+ràng. Hạ tầng nặng được thêm đúng lúc theo từng giai đoạn phía trên.
