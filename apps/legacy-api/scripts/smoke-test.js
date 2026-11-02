@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
+import bcrypt from 'bcryptjs';
 import mysql from 'mysql2/promise';
 import { repoRoot } from '../server/paths.js';
 
@@ -11,6 +12,8 @@ const base = `http://127.0.0.1:${process.env.PORT || 3000}`;
 const marker = randomUUID().slice(0, 12);
 const email = `to-toan-smoke-${marker}@example.test`;
 const password = `Smoke-${randomUUID()}`;
+const passwordHash = await bcrypt.hash(password, 12);
+const sessionToken = randomBytes(32).toString('base64url');
 const connection = await mysql.createConnection({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
@@ -34,10 +37,17 @@ async function request(path, method = 'GET', body, cookie) {
 
 try {
   assert.equal((await request('/api/health')).data.database, 'connected');
-  const registered = await request('/api/auth/register', 'POST', { name: 'Smoke Test', email, password });
-  assert.equal(registered.status, 201);
-  userId = registered.data.user.id;
-  const cookie = registered.cookie;
+  const [createdUser] = await connection.execute(
+    "INSERT INTO users (name, email, password_hash, status, email_verified_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP)",
+    ['Smoke Test', email, passwordHash],
+  );
+  userId = createdUser.insertId;
+  await connection.execute(
+    `INSERT INTO sessions (id, user_id, token_hash, expires_at)
+     VALUES (?, ?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR))`,
+    [randomUUID(), userId, createHash('sha256').update(sessionToken).digest('hex')],
+  );
+  const cookie = `to_toan_session=${sessionToken}`;
   const submitted = await request('/api/problems', 'POST', { title: `Bài kiểm tra ${marker}`, body: 'Đề bài dùng để kiểm tra các chức năng cơ bản của hệ thống.', tag: 'logic', difficulty: 'Dễ' }, cookie);
   assert.equal(submitted.status, 201);
   problemId = submitted.data.problem.id;

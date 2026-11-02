@@ -10,9 +10,11 @@ try {
     'bookmarks',
     'categories',
     'comments',
+    'email_verification_tokens',
     'newsletter_subscriptions',
     'problem_categories',
     'problems',
+    'sessions',
     'solutions',
     'users',
     'videos',
@@ -35,6 +37,13 @@ try {
       (migration) =>
         String(migration.timestamp) === '1762080000000' &&
         migration.name === 'BaselineSchema1762080000000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762087200000' &&
+        migration.name === 'AuthSessionsEmailVerification1762087200000',
     ),
   );
 

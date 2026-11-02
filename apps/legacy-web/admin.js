@@ -90,12 +90,12 @@ function renderProblems(problems) {
 }
 
 function roleOptions(selected) {
-  return [['reader', 'Độc giả'], ['editor', 'Biên tập viên'], ['admin', 'Admin']]
+  return [['reader', 'Độc giả'], ['editor', 'Biên tập viên'], ['moderator', 'Điều hành viên'], ['admin', 'Admin']]
     .map(([value, label]) => `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
 }
 
 function statusOptions(selected) {
-  return [['active', 'Hoạt động'], ['disabled', 'Vô hiệu hóa']]
+  return [['pending_verification', 'Chờ xác minh'], ['active', 'Hoạt động'], ['suspended', 'Tạm khóa'], ['disabled', 'Vô hiệu hóa']]
     .map(([value, label]) => `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
 }
 
@@ -241,14 +241,14 @@ $('#solution-review-list').addEventListener('click', async (event) => {
 });
 
 $('#admin-logout').addEventListener('click', async () => {
-  await api('/api/auth/logout', { method: 'POST' }).catch(() => null);
+  await api('/api/v1/auth/logout', { method: 'POST' }).catch(() => null);
   window.location.href = '/';
 });
 
 async function startAdmin() {
   $('#admin-date').textContent = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full' }).format(new Date());
   try {
-    const session = await api('/api/auth/me');
+    const session = await api('/api/v1/auth/me');
     currentUser = session.user;
     if (currentUser.role !== 'admin') {
       showDenied('Tài khoản hiện tại là độc giả. Hãy cấp quyền admin rồi tải lại trang.');

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 export function configureApplication(app: INestApplication): void {
@@ -14,6 +15,7 @@ export function configureApplication(app: INestApplication): void {
     .filter(Boolean);
 
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: origins,
     credentials: true,

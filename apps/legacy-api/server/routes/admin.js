@@ -205,15 +205,24 @@ adminRouter.patch('/users/:id', async (req, res, next) => {
   const id = Number(req.params.id);
   const role = String(req.body.role || '');
   const status = String(req.body.status || '');
-  if (!Number.isSafeInteger(id) || id < 1 || !['reader', 'editor', 'admin'].includes(role) || !['active', 'disabled'].includes(status)) {
+  if (!Number.isSafeInteger(id) || id < 1 || !['reader', 'editor', 'moderator', 'admin'].includes(role) || !['pending_verification', 'active', 'suspended', 'disabled'].includes(status)) {
     return res.status(400).json({ message: 'Thông tin tài khoản không hợp lệ.' });
   }
   if (id === Number(req.user.id) && (role !== 'admin' || status !== 'active')) {
     return res.status(400).json({ message: 'Bạn không thể tự hạ quyền hoặc vô hiệu hóa tài khoản đang dùng.' });
   }
   try {
-    const [result] = await pool.execute('UPDATE users SET role = ?, status = ? WHERE id = ?', [role, status, id]);
+    const [result] = await pool.execute(
+      "UPDATE users SET role = ?, status = ? WHERE id = ? AND (? <> 'active' OR email_verified_at IS NOT NULL)",
+      [role, status, id, status],
+    );
     if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
+    if (status !== 'active') {
+      await pool.execute(
+        'UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL',
+        [id],
+      );
+    }
     return res.json({ id, role, status });
   } catch (error) {
     return next(error);

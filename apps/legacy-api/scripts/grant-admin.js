@@ -22,7 +22,7 @@ const connection = await mysql.createConnection({
 
 try {
   const [result] = await connection.execute(
-    "UPDATE users SET role = 'admin', status = 'active' WHERE email = ?",
+    "UPDATE users SET role = 'admin', status = 'active', email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP) WHERE email = ?",
     [email],
   );
   if (!result.affectedRows) {

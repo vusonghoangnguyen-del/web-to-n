@@ -72,6 +72,7 @@ Nếu port 5173 đang bận, Vite sẽ báo port thực tế ở terminal. Giữ
 ## Chức năng cơ bản
 
 - Đăng ký, đăng nhập, đăng xuất và khôi phục phiên.
+- Tài khoản mới xác minh email trước khi hoạt động; session được lưu và có thể thu hồi trong MySQL.
 - Gửi bài toán; admin duyệt hoặc từ chối trước khi bài hiển thị công khai.
 - Tìm kiếm, lọc theo chuyên mục và độ khó, xem thêm từng trang.
 - Trang chi tiết bài toán với bình luận, trả lời và lời giải.
@@ -172,3 +173,24 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 Các bảng hiện có: `users`, `categories`, `problems`, `problem_categories`, `solutions`, `comments`, `bookmarks`, `videos` và `newsletter_subscriptions`.
 
 TypeORM còn tạo bảng kỹ thuật `typeorm_migrations` để ghi nhận migration đã áp dụng. Không sửa hoặc xóa bảng này bằng tay.
+
+## Xác minh email và session
+
+Auth mới chạy tại `/api/v1/auth` trên NestJS. Đăng ký/đăng nhập cũ của Express trả HTTP 410 để không thể bỏ qua xác minh email; Express vẫn chấp nhận session NestJS cho các module nghiệp vụ chưa chuyển.
+
+Trong môi trường local, `MAIL_MODE=preview` lưu email xác minh vào `storage/mail-preview/` thay vì gửi ra Internet. Mở file HTML mới nhất và nhấn liên kết để kiểm tra. Thư mục này không được commit.
+
+Để gửi email thật, cấu hình SMTP trong `.env`:
+
+```env
+APP_WEB_URL=https://ten-mien-cua-ban.example
+MAIL_MODE=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_SECURE=false
+MAIL_USER=your-smtp-user
+MAIL_PASSWORD=your-smtp-password
+MAIL_FROM="Tờ Toán <no-reply@ten-mien-cua-ban.example>"
+```
+
+Không dùng mật khẩu tài khoản email thông thường nếu nhà cung cấp yêu cầu app password. Không commit thông tin SMTP.

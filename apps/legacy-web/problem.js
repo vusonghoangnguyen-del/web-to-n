@@ -150,7 +150,7 @@ async function start() {
   $('#solution-login-link').href = `/?login=1&return=${encodeURIComponent(location.pathname + location.search)}`;
   if (!Number.isSafeInteger(problemId) || problemId < 1) { $('#problem-loading').classList.add('error'); $('#problem-loading h1').textContent = 'Đường dẫn bài toán không hợp lệ.'; return; }
   try {
-    const session = await api('/api/auth/me').catch(() => null);
+    const session = await api('/api/v1/auth/me').catch(() => null);
     currentUser = session?.user || null;
     $('#detail-user').textContent = currentUser ? currentUser.name : 'Khách';
     $('#comment-form').hidden = !currentUser;

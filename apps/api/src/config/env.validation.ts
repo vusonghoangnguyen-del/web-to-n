@@ -9,6 +9,16 @@ export type ValidatedEnvironment = RawEnvironment & {
   DB_USER: string;
   DB_PASSWORD: string;
   CORS_ORIGINS: string;
+  APP_WEB_URL: string;
+  MAIL_MODE: 'preview' | 'smtp';
+  MAIL_HOST?: string;
+  MAIL_PORT: number;
+  MAIL_SECURE: boolean;
+  MAIL_USER?: string;
+  MAIL_PASSWORD?: string;
+  MAIL_FROM: string;
+  SESSION_TTL_DAYS: number;
+  EMAIL_VERIFICATION_TTL_MINUTES: number;
 };
 
 function requireText(config: RawEnvironment, key: string): string {
@@ -27,7 +37,18 @@ function parsePort(value: unknown, fallback: number, key: string): number {
   return port;
 }
 
+function parsePositiveInteger(value: unknown, fallback: number, key: string): number {
+  const result = Number(value ?? fallback);
+  if (!Number.isInteger(result) || result < 1) {
+    throw new Error(`Biến môi trường ${key} phải là số nguyên dương.`);
+  }
+  return result;
+}
+
 export function validateEnvironment(config: RawEnvironment): ValidatedEnvironment {
+  const mailMode = config.MAIL_MODE === 'smtp' ? 'smtp' : 'preview';
+  if (mailMode === 'smtp') requireText(config, 'MAIL_HOST');
+
   return {
     ...config,
     NODE_ENV:
@@ -44,5 +65,26 @@ export function validateEnvironment(config: RawEnvironment): ValidatedEnvironmen
       typeof config.CORS_ORIGINS === 'string' && config.CORS_ORIGINS.trim()
         ? config.CORS_ORIGINS.trim()
         : 'http://localhost:5173',
+    APP_WEB_URL:
+      typeof config.APP_WEB_URL === 'string' && config.APP_WEB_URL.trim()
+        ? config.APP_WEB_URL.trim().replace(/\/$/, '')
+        : 'http://localhost:5173',
+    MAIL_MODE: mailMode,
+    MAIL_HOST: typeof config.MAIL_HOST === 'string' ? config.MAIL_HOST.trim() : undefined,
+    MAIL_PORT: parsePort(config.MAIL_PORT, 587, 'MAIL_PORT'),
+    MAIL_SECURE: String(config.MAIL_SECURE ?? 'false').toLowerCase() === 'true',
+    MAIL_USER: typeof config.MAIL_USER === 'string' ? config.MAIL_USER.trim() : undefined,
+    MAIL_PASSWORD:
+      typeof config.MAIL_PASSWORD === 'string' ? config.MAIL_PASSWORD : undefined,
+    MAIL_FROM:
+      typeof config.MAIL_FROM === 'string' && config.MAIL_FROM.trim()
+        ? config.MAIL_FROM.trim()
+        : 'Tờ Toán <no-reply@localhost>',
+    SESSION_TTL_DAYS: parsePositiveInteger(config.SESSION_TTL_DAYS, 7, 'SESSION_TTL_DAYS'),
+    EMAIL_VERIFICATION_TTL_MINUTES: parsePositiveInteger(
+      config.EMAIL_VERIFICATION_TTL_MINUTES,
+      60,
+      'EMAIL_VERIFICATION_TTL_MINUTES',
+    ),
   };
 }

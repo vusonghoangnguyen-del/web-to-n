@@ -7,6 +7,8 @@ import { ProblemEntity } from './problem.entity';
 import { SolutionEntity } from './solution.entity';
 import { UserEntity } from './user.entity';
 import { VideoEntity } from './video.entity';
+import { SessionEntity } from './session.entity';
+import { EmailVerificationTokenEntity } from './email-verification-token.entity';
 
 export const databaseEntities = [
   UserEntity,
@@ -18,6 +20,8 @@ export const databaseEntities = [
   BookmarkEntity,
   VideoEntity,
   NewsletterSubscriptionEntity,
+  SessionEntity,
+  EmailVerificationTokenEntity,
 ];
 
 export {
@@ -30,4 +34,6 @@ export {
   SolutionEntity,
   UserEntity,
   VideoEntity,
+  SessionEntity,
+  EmailVerificationTokenEntity,
 };

@@ -4,15 +4,20 @@ import { CommentEntity } from './comment.entity';
 import { ProblemEntity } from './problem.entity';
 import { SolutionEntity } from './solution.entity';
 import { VideoEntity } from './video.entity';
+import { SessionEntity } from './session.entity';
+import { EmailVerificationTokenEntity } from './email-verification-token.entity';
 
 export enum UserRole {
   Reader = 'reader',
   Editor = 'editor',
+  Moderator = 'moderator',
   Admin = 'admin',
 }
 
 export enum UserStatus {
+  PendingVerification = 'pending_verification',
   Active = 'active',
+  Suspended = 'suspended',
   Disabled = 'disabled',
 }
 
@@ -36,6 +41,9 @@ export class UserEntity {
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.Active })
   status!: UserStatus;
+
+  @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
+  emailVerifiedAt!: Date | null;
 
   @Column({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt!: Date;
@@ -62,4 +70,10 @@ export class UserEntity {
 
   @OneToMany(() => VideoEntity, (video) => video.author)
   videos!: VideoEntity[];
+
+  @OneToMany(() => SessionEntity, (session) => session.user)
+  sessions!: SessionEntity[];
+
+  @OneToMany(() => EmailVerificationTokenEntity, (token) => token.user)
+  emailVerificationTokens!: EmailVerificationTokenEntity[];
 }

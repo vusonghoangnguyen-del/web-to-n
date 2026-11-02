@@ -1,6 +1,7 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const toast = $('#toast');
+const AUTH_API = '/api/v1/auth';
 const loginDialog = $('#login-dialog');
 const publishDialog = $('#publish-dialog');
 let user = null;
@@ -41,6 +42,10 @@ function setAuthMode(mode) {
   form.dataset.mode = mode;
   $('#auth-name-field').hidden = !register;
   form.elements.name.required = register;
+  $$('.register-only', form).forEach((element) => { element.hidden = !register; });
+  form.elements.passwordConfirmation.required = register;
+  form.elements.acceptTerms.required = register;
+  form.elements.password.minLength = register ? 12 : 1;
   form.elements.password.autocomplete = register ? 'new-password' : 'current-password';
   $('#auth-title').textContent = register ? 'Tạo tài khoản Tờ Toán' : 'Đăng nhập Tờ Toán';
   $('#auth-description').textContent = register ? 'Tạo hồ sơ để đăng bài, gửi lời giải và lưu bài toán.' : 'Tiếp tục hành trình tìm một cách giải mới.';
@@ -52,6 +57,24 @@ function setAuthMode(mode) {
   });
 }
 $$('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.authMode)));
+const resendVerificationButton = document.createElement('button');
+resendVerificationButton.type = 'button';
+resendVerificationButton.className = 'outline-button full';
+resendVerificationButton.textContent = 'Gửi lại email xác minh';
+$('#login-form').querySelector('small').before(resendVerificationButton);
+resendVerificationButton.addEventListener('click', async () => {
+  const email = $('#login-form').elements.email.value.trim();
+  if (!email) { notify('Nhập email cần gửi lại liên kết xác minh.'); return; }
+  resendVerificationButton.disabled = true;
+  try {
+    const result = await api(`${AUTH_API}/email/resend`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    notify(result.message);
+  } catch (error) { notify(error.message); }
+  finally { resendVerificationButton.disabled = false; }
+});
 function showLogin() { setAuthMode('login'); openDialog(loginDialog); }
 function requireUser(next) { if (user) next(); else { showLogin(); notify('Đăng nhập để tiếp tục.'); } }
 
@@ -66,7 +89,7 @@ function renderUser() {
 $('#login-open').addEventListener('click', () => user ? location.assign('#ho-so') : showLogin());
 $('#profile-login').addEventListener('click', showLogin);
 async function logout() {
-  try { await api('/api/auth/logout', { method: 'POST' }); }
+  try { await api(`${AUTH_API}/logout`, { method: 'POST' }); }
   catch (error) { notify(error.message); return; }
   user = null;
   bookmarks = new Set();
@@ -85,10 +108,25 @@ $('#login-form').addEventListener('submit', async (event) => {
   const submit = $('#auth-submit');
   submit.disabled = true;
   try {
-    const result = await api(`/api/auth/${action}`, {
+    const payload = action === 'register'
+      ? {
+          name: data.get('name'),
+          email: data.get('email'),
+          password: data.get('password'),
+          passwordConfirmation: data.get('passwordConfirmation'),
+          acceptTerms: data.get('acceptTerms') === 'on',
+        }
+      : { email: data.get('email'), password: data.get('password') };
+    const result = await api(`${AUTH_API}/${action}`, {
       method: 'POST',
-      body: JSON.stringify({ name: data.get('name'), email: data.get('email'), password: data.get('password') }),
+      body: JSON.stringify(payload),
     });
+    if (action === 'register') {
+      loginDialog.close();
+      form.reset();
+      notify(result.message);
+      return;
+    }
     user = result.user;
     loginDialog.close();
     form.reset();
@@ -252,7 +290,7 @@ menuButton.addEventListener('click', () => { const open = nav.classList.toggle('
 $$('#main-nav a').forEach((link) => link.addEventListener('click', () => { nav.classList.remove('open'); menuButton.setAttribute('aria-expanded', 'false'); }));
 
 async function restoreSession() {
-  try { user = (await api('/api/auth/me')).user; await loadProfile(); }
+  try { user = (await api(`${AUTH_API}/me`)).user; await loadProfile(); }
   catch { user = null; }
   renderUser();
   if (!user && new URLSearchParams(location.search).get('login') === '1') showLogin();

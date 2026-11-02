@@ -16,11 +16,19 @@ describe('validateEnvironment', () => {
     expect(result.NEST_PORT).toBe(3001);
     expect(result.DB_PORT).toBe(3306);
     expect(result.CORS_ORIGINS).toBe('http://localhost:5173');
+    expect(result.MAIL_MODE).toBe('preview');
+    expect(result.SESSION_TTL_DAYS).toBe(7);
   });
 
   it('từ chối cấu hình thiếu mật khẩu cơ sở dữ liệu', () => {
     expect(() =>
       validateEnvironment({ ...validEnvironment, DB_PASSWORD: '' }),
     ).toThrow('DB_PASSWORD');
+  });
+
+  it('yêu cầu mail host khi bật SMTP', () => {
+    expect(() => validateEnvironment({ ...validEnvironment, MAIL_MODE: 'smtp' })).toThrow(
+      'MAIL_HOST',
+    );
   });
 });
