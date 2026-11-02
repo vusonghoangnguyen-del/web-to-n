@@ -11,6 +11,7 @@ let filter = 'all';
 let searchTimer;
 let requestSerial = 0;
 let toastTimer;
+let accountNotifications = [];
 
 function escapeHTML(value) {
   const el = document.createElement('div');
@@ -78,21 +79,71 @@ resendVerificationButton.addEventListener('click', async () => {
 function showLogin() { setAuthMode('login'); openDialog(loginDialog); }
 function requireUser(next) { if (user) next(); else { showLogin(); notify('Đăng nhập để tiếp tục.'); } }
 
+const accountMenu = $('#account-menu');
+const accountTrigger = $('#login-open');
+function closeAccountMenu() {
+  accountMenu.hidden = true;
+  accountTrigger.setAttribute('aria-expanded', 'false');
+  $('#account-notifications').hidden = true;
+  $('#account-notifications-toggle').setAttribute('aria-expanded', 'false');
+}
+function toggleAccountMenu() {
+  const shouldOpen = accountMenu.hidden;
+  accountMenu.hidden = !shouldOpen;
+  accountTrigger.setAttribute('aria-expanded', String(shouldOpen));
+}
+function renderAccountNotifications() {
+  const list = $('#account-notifications');
+  const count = $('#account-notification-count');
+  count.textContent = String(accountNotifications.length);
+  count.hidden = accountNotifications.length === 0;
+  $('#account-notification-summary').textContent = accountNotifications.length
+    ? `${accountNotifications.length} cập nhật về nội dung của bạn`
+    : 'Không có thông báo mới';
+  list.innerHTML = accountNotifications.length
+    ? accountNotifications.slice(0, 5).map((item) => `<a href="${item.href}" data-account-close><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.message)}</small></a>`).join('')
+    : '<p>Hiện chưa có cập nhật nào.</p>';
+}
+
 function renderUser() {
-  $('#login-open').textContent = user ? `Xin chào, ${user.name.split(' ').pop()}` : 'Đăng nhập';
+  accountTrigger.textContent = user ? `${user.name.split(' ').pop()}  ▾` : 'Đăng nhập';
+  accountTrigger.classList.toggle('signed-in', Boolean(user));
+  accountTrigger.setAttribute('aria-haspopup', user ? 'menu' : 'false');
   $('#admin-open').hidden = user?.role !== 'admin';
+  $('#account-admin-link').hidden = user?.role !== 'admin';
+  accountMenu.hidden = true;
+  accountTrigger.setAttribute('aria-expanded', 'false');
+  $('#account-avatar').textContent = user?.name?.trim().charAt(0).toUpperCase() || 'T';
+  $('#account-name').textContent = user?.name || 'Tài khoản';
+  $('#account-email').textContent = user?.email || '';
   $('#profile-guest').hidden = Boolean(user);
   $('#profile-content').hidden = !user;
   $('#profile-name').textContent = user ? `${user.name} · ${user.email}` : '';
   updateBookmarkButtons();
 }
-$('#login-open').addEventListener('click', () => user ? location.assign('#ho-so') : showLogin());
+accountTrigger.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (user) toggleAccountMenu(); else showLogin();
+});
+accountMenu.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (event.target.closest('[data-account-close]')) closeAccountMenu();
+});
+document.addEventListener('click', closeAccountMenu);
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeAccountMenu(); });
+$$('[data-account-close]').forEach((element) => element.addEventListener('click', closeAccountMenu));
+$('#account-notifications-toggle').addEventListener('click', () => {
+  const panel = $('#account-notifications');
+  panel.hidden = !panel.hidden;
+  $('#account-notifications-toggle').setAttribute('aria-expanded', String(!panel.hidden));
+});
 $('#profile-login').addEventListener('click', showLogin);
 async function logout() {
   try { await api(`${AUTH_API}/logout`, { method: 'POST' }); }
   catch (error) { notify(error.message); return; }
   user = null;
   bookmarks = new Set();
+  accountNotifications = [];
   $('#my-problems').replaceChildren();
   $('#my-solutions-summary').replaceChildren();
   $('#my-bookmarks').replaceChildren();
@@ -100,6 +151,7 @@ async function logout() {
   notify('Bạn đã đăng xuất.');
 }
 $('#profile-logout').addEventListener('click', logout);
+$('#account-logout').addEventListener('click', logout);
 $('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -238,6 +290,14 @@ async function loadMyProblems() {
   if (!user) return;
   try {
     const result = await api('/api/problems/mine');
+    accountNotifications = accountNotifications.filter((item) => item.kind !== 'problem');
+    accountNotifications.push(...result.problems.filter((item) => ['pending', 'rejected'].includes(item.status)).map((item) => ({
+      kind: 'problem',
+      title: item.title,
+      message: item.status === 'pending' ? 'Bài toán đang chờ tòa soạn duyệt.' : 'Bài toán chưa được duyệt.',
+      href: '#ho-so',
+    })));
+    renderAccountNotifications();
     $('#my-problems').innerHTML = result.problems.length ? result.problems.map((item) => profileRow(item, { pending: 'Chờ duyệt', rejected: 'Đã từ chối', published: 'Đã xuất bản' }[item.status] || item.status, item.status === 'published' ? `/problem.html?id=${Number(item.id)}` : null)).join('') : '<p class="home-muted">Bạn chưa gửi bài toán nào.</p>';
   } catch (error) { notify(error.message); }
 }
@@ -254,6 +314,14 @@ async function loadMySolutions() {
   if (!user) return;
   try {
     const result = await api('/api/problems/solutions/mine');
+    accountNotifications = accountNotifications.filter((item) => item.kind !== 'solution');
+    accountNotifications.push(...result.solutions.filter((item) => ['pending', 'rejected'].includes(item.status)).map((item) => ({
+      kind: 'solution',
+      title: item.problem_title,
+      message: item.status === 'pending' ? 'Lời giải đang chờ kiểm chứng.' : 'Lời giải chưa được duyệt.',
+      href: '#ho-so',
+    })));
+    renderAccountNotifications();
     const labels = { pending: 'Chờ duyệt', verified: 'Đã kiểm chứng', rejected: 'Đã từ chối' };
     $('#my-solutions-summary').innerHTML = result.solutions.length ? result.solutions.map((item) => profileRow({ title: item.problem_title, status: item.status }, labels[item.status] || item.status, item.problem_status === 'published' ? `/problem.html?id=${Number(item.problem_id)}#loi-giai` : null)).join('') : '<p class="home-muted">Bạn chưa gửi lời giải nào.</p>';
   } catch (error) { notify(error.message); }

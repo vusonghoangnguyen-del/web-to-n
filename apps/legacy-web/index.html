@@ -13,7 +13,22 @@
   <div class="paper-noise" aria-hidden="true"></div>
   <header class="topbar"><div class="topbar-inner">
     <p id="today-label">Tờ Toán</p><p class="edition">Bài toán · Lời giải · Thảo luận</p>
-    <div class="account-actions"><a class="plain-button" id="admin-open" href="/admin.html" hidden>Quản trị</a><button class="plain-button" id="login-open">Đăng nhập</button><button class="ink-button" id="publish-open">+ Đăng bài toán</button></div>
+    <div class="account-actions">
+      <a class="plain-button" id="admin-open" href="/admin.html" hidden>Quản trị</a>
+      <button class="plain-button account-trigger" id="login-open" type="button" aria-haspopup="menu" aria-expanded="false">Đăng nhập</button>
+      <section class="account-menu" id="account-menu" role="menu" aria-label="Tài khoản" hidden>
+        <div class="account-menu-profile">
+          <span class="account-avatar" id="account-avatar" aria-hidden="true">T</span>
+          <div><strong id="account-name">Tài khoản</strong><small id="account-email"></small></div>
+        </div>
+        <a class="account-menu-item" href="#ho-so" role="menuitem" data-account-close><span aria-hidden="true">♙</span><span><strong>Thông tin tài khoản</strong><small>Bài đăng, lời giải và bài đã lưu</small></span><b aria-hidden="true">→</b></a>
+        <button class="account-menu-item" id="account-notifications-toggle" type="button" role="menuitem" aria-expanded="false"><span aria-hidden="true">♢</span><span><strong>Thông báo</strong><small id="account-notification-summary">Không có thông báo mới</small></span><em id="account-notification-count" hidden>0</em><b aria-hidden="true">⌄</b></button>
+        <div class="account-notifications" id="account-notifications" hidden></div>
+        <a class="account-menu-item" id="account-admin-link" href="/admin.html" role="menuitem" hidden><span aria-hidden="true">⚙</span><span><strong>Trang quản trị</strong><small>Duyệt và quản lý nội dung</small></span><b aria-hidden="true">→</b></a>
+        <button class="account-menu-item account-logout" id="account-logout" type="button" role="menuitem"><span aria-hidden="true">↪</span><span><strong>Đăng xuất</strong><small>Kết thúc phiên trên thiết bị này</small></span></button>
+      </section>
+      <button class="ink-button" id="publish-open">+ Đăng bài toán</button>
+    </div>
   </div></header>
   <header class="masthead"><button class="mobile-menu" aria-expanded="false" aria-controls="main-nav">Mục lục</button><a class="logo" href="/" aria-label="Tờ Toán — về đầu trang"><span class="logo-kicker">Tạp chí cộng đồng</span><strong>TỜ TOÁN</strong><span class="logo-sub">Mỗi bài toán · Một cách nhìn mới</span></a><div class="masthead-mark" aria-hidden="true">∑</div></header>
   <nav id="main-nav" class="main-nav" aria-label="Điều hướng"><a href="#dau-trang" class="active">Trang nhất</a><a href="#bai-toan">Bài toán</a><a href="#loi-giai">Lời giải</a><a href="#video">Video</a><a href="#ho-so">Hồ sơ</a></nav>
