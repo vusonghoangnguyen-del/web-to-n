@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node --check script.js && node --check admin.js && node --check problem.js && node --check verify-email.js"
+    "check": "node --check script.js && node --check admin.js && node --check problem.js && node --check check-email.js && node --check verify-email.js"
   },
   "devDependencies": {
     "vite": "^7.2.2"

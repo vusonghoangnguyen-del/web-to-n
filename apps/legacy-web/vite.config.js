@@ -21,6 +21,7 @@ export default defineConfig({
         main: resolve(import.meta.dirname, 'index.html'),
         admin: resolve(import.meta.dirname, 'admin.html'),
         problem: resolve(import.meta.dirname, 'problem.html'),
+        checkEmail: resolve(import.meta.dirname, 'check-email.html'),
         verifyEmail: resolve(import.meta.dirname, 'verify-email.html'),
       },
     },

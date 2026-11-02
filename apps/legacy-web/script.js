@@ -58,24 +58,6 @@ function setAuthMode(mode) {
   });
 }
 $$('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.authMode)));
-const resendVerificationButton = document.createElement('button');
-resendVerificationButton.type = 'button';
-resendVerificationButton.className = 'outline-button full';
-resendVerificationButton.textContent = 'Gửi lại email xác minh';
-$('#login-form').querySelector('small').before(resendVerificationButton);
-resendVerificationButton.addEventListener('click', async () => {
-  const email = $('#login-form').elements.email.value.trim();
-  if (!email) { notify('Nhập email cần gửi lại liên kết xác minh.'); return; }
-  resendVerificationButton.disabled = true;
-  try {
-    const result = await api(`${AUTH_API}/email/resend`, {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
-    notify(result.message);
-  } catch (error) { notify(error.message); }
-  finally { resendVerificationButton.disabled = false; }
-});
 function showLogin() { setAuthMode('login'); openDialog(loginDialog); }
 function requireUser(next) { if (user) next(); else { showLogin(); notify('Đăng nhập để tiếp tục.'); } }
 
@@ -174,9 +156,11 @@ $('#login-form').addEventListener('submit', async (event) => {
       body: JSON.stringify(payload),
     });
     if (action === 'register') {
+      sessionStorage.setItem('pendingVerificationEmail', String(data.get('email')).trim().toLowerCase());
+      sessionStorage.setItem('verificationEmailSentAt', String(Date.now()));
       loginDialog.close();
       form.reset();
-      notify(result.message);
+      location.assign('/check-email.html');
       return;
     }
     user = result.user;

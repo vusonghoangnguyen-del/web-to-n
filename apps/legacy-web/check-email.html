@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2efe5">
+  <title>Kiểm tra email — Tờ Toán</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="paper-noise" aria-hidden="true"></div>
+  <main class="verification-page page-shell">
+    <section class="verification-card">
+      <div class="verification-mark" aria-hidden="true">✉</div>
+      <span class="eyebrow">Còn một bước nữa</span>
+      <h1>Kiểm tra email<br>của bạn.</h1>
+      <p>Chúng tôi đã gửi một liên kết xác minh tới <strong id="pending-email">email đăng ký</strong>. Hãy mở email và bấm vào liên kết để kích hoạt quyền đăng nhập.</p>
+      <div class="verification-note">
+        <strong>Chưa thấy email?</strong>
+        <p>Kiểm tra thư rác hoặc nhập lại email bên dưới để gửi một liên kết mới.</p>
+      </div>
+      <form id="resend-form" class="resend-form">
+        <label for="resend-email">Email đăng ký</label>
+        <input id="resend-email" name="email" type="email" required autocomplete="email">
+        <button class="ink-button full" id="resend-button" type="submit">Gửi lại email xác minh</button>
+        <p id="resend-message" role="status" aria-live="polite"></p>
+      </form>
+      <a class="verification-back" href="/?login=1">← Quay lại đăng nhập</a>
+    </section>
+  </main>
+  <script type="module" src="/check-email.js"></script>
+</body>
+</html>

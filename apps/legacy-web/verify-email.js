@@ -12,6 +12,8 @@ async function verify() {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data?.message || 'Không thể xác minh email.');
   message.textContent = `Email đã được xác minh. Chào ${data.user.name}!`;
+  sessionStorage.removeItem('pendingVerificationEmail');
+  sessionStorage.removeItem('verificationEmailSentAt');
   home.hidden = false;
   history.replaceState(null, '', '/verify-email.html');
 }

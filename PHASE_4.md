@@ -50,6 +50,7 @@ Migration `AuthSessionsEmailVerification1762087200000`:
 ## Frontend
 
 - Form đăng ký yêu cầu username duy nhất, mật khẩu tối thiểu 8 ký tự, nhập lại mật khẩu và đồng ý điều khoản.
+- Sau khi đăng ký, người dùng được chuyển tới trang chờ xác minh riêng. Chỉ trang này có chức năng gửi lại email xác minh và giới hạn thao tác liên tiếp.
 - Sau đăng ký hiển thị yêu cầu kiểm tra email.
 - Có nút gửi lại email xác minh.
 - `verify-email.html` nhận token và gọi NestJS.
