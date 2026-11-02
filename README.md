@@ -24,6 +24,7 @@ Dự án dùng npm workspaces. Các lệnh ở thư mục gốc điều phối h
 
 - `@to-toan/legacy-web`: frontend Vite trong `apps/legacy-web`.
 - `@to-toan/legacy-api`: Express API và MySQL trong `apps/legacy-api`.
+- `@to-toan/api`: NestJS API TypeScript mới trong `apps/api`, hiện chạy song song để chuyển đổi an toàn.
 
 Tên `legacy` cho biết đây là ứng dụng ổn định đang được duy trì trong lúc NestJS và Next.js được xây ở các giai đoạn tiếp theo. Nó không có nghĩa là phần này đã ngừng hoạt động.
 
@@ -59,8 +60,10 @@ npm.cmd run dev
 ```
 
 - Website: `http://localhost:5173`
-- API: `http://127.0.0.1:3000`
-- Kiểm tra database: `http://127.0.0.1:3000/api/health`
+- Express API cũ: `http://127.0.0.1:3000`
+- NestJS API mới: `http://127.0.0.1:3001`
+- Health NestJS + MySQL: `http://127.0.0.1:3001/api/v1/health`
+- Swagger: `http://127.0.0.1:3001/docs`
 
 Nếu port 5173 đang bận, Vite sẽ báo port thực tế ở terminal. Giữ terminal chạy trong lúc dùng website.
 
@@ -96,9 +99,12 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 
 ## Các lệnh chính
 
-- `npm.cmd run dev`: chạy đồng thời Vite và API với tự động tải lại.
+- `npm.cmd run dev`: chạy đồng thời Vite, Express cũ và NestJS mới với tự động tải lại.
+- `npm.cmd run dev:nest`: chỉ chạy NestJS API mới tại cổng 3001.
 - `npm.cmd run check`: kiểm tra cú pháp frontend, backend và script thiết lập.
-- `npm.cmd run build`: tạo frontend production trong `apps/legacy-web/dist/`.
+- `npm.cmd run build`: build frontend và NestJS API production.
+- `npm.cmd run test`: chạy unit test của NestJS.
+- `npm.cmd run test:e2e`: build NestJS rồi kiểm tra HTTP thật với MySQL, Swagger và định dạng lỗi.
 - `npm.cmd run db:backup`: tạo bản sao MySQL trong thư mục `backups/` (Windows).
 - `npm.cmd run smoke`: kiểm tra chuỗi API chính bằng dữ liệu tạm và xóa dữ liệu thử sau khi chạy. Cần API đang chạy.
 - `npm.cmd start`: chạy API; khi `NODE_ENV=production`, API phục vụ cả `apps/legacy-web/dist/`.
@@ -108,6 +114,13 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 ```text
 .
 ├── apps/
+│   ├── api/                 # NestJS API mới, TypeScript strict
+│   │   ├── src/
+│   │   │   ├── common/
+│   │   │   ├── config/
+│   │   │   ├── database/
+│   │   │   └── health/
+│   │   └── test/
 │   ├── legacy-web/          # Frontend Vite đang hoạt động
 │   │   ├── index.html
 │   │   ├── admin.html
