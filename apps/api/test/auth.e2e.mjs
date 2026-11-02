@@ -72,7 +72,8 @@ while (legacyPort === port) legacyPort = await findFreePort();
 const baseUrl = `http://127.0.0.1:${port}`;
 const legacyBaseUrl = `http://127.0.0.1:${legacyPort}`;
 const email = `phase4-${randomUUID()}@example.test`;
-const password = 'Mat-khau-test-2026!';
+const username = `test_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+const password = 'Test-8!x';
 const output = [];
 let previewFile;
 const existingPreviews = await previewFiles();
@@ -107,10 +108,22 @@ try {
   await waitForApi(`${baseUrl}/api/v1/health`, child, output);
   await waitForApi(`${legacyBaseUrl}/api/health`, legacyChild, output);
 
+  const shortPassword = await jsonRequest(`${baseUrl}/api/v1/auth/register`, {
+    method: 'POST',
+    body: JSON.stringify({
+      username,
+      email,
+      password: 'Short7',
+      passwordConfirmation: 'Short7',
+      acceptTerms: true,
+    }),
+  });
+  assert.equal(shortPassword.response.status, 400);
+
   const registered = await jsonRequest(`${baseUrl}/api/v1/auth/register`, {
     method: 'POST',
     body: JSON.stringify({
-      name: 'Tài khoản kiểm thử',
+      username,
       email,
       password,
       passwordConfirmation: password,
@@ -120,6 +133,14 @@ try {
   assert.equal(registered.response.status, 201);
   assert.match(registered.body.message, /kiểm tra email/i);
   assert.equal('password' in registered.body, false);
+
+  const [storedAccount] = await database.execute(
+    'SELECT username, status, email_verified_at FROM users WHERE email = ?',
+    [email],
+  );
+  assert.equal(storedAccount[0].username, username);
+  assert.equal(storedAccount[0].status, 'active');
+  assert.equal(storedAccount[0].email_verified_at, null);
 
   const pendingLogin = await jsonRequest(`${baseUrl}/api/v1/auth/login`, {
     method: 'POST',
@@ -138,6 +159,7 @@ try {
   });
   assert.equal(verified.response.status, 201);
   assert.equal(verified.body.user.email, email);
+  assert.equal(verified.body.user.username, username);
   assert.equal(verified.body.user.role, 'reader');
   assert.equal(verified.body.user.emailVerified, true);
   assert.equal('passwordHash' in verified.body.user, false);
@@ -173,7 +195,28 @@ try {
   assert.equal(login.response.status, 200);
   assert.match(login.response.headers.getSetCookie()[0], /HttpOnly/i);
 
-  process.stdout.write('Auth E2E thành công: đăng ký, email, xác minh, session, đăng xuất, đăng nhập và cầu nối Express.\n');
+  await database.execute(
+    "UPDATE users SET status = 'banned', banned_at = CURRENT_TIMESTAMP, ban_reason = 'E2E test' WHERE email = ?",
+    [email],
+  );
+  const bannedLogin = await jsonRequest(`${baseUrl}/api/v1/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  assert.equal(bannedLogin.response.status, 401);
+  const duplicateBannedEmail = await jsonRequest(`${baseUrl}/api/v1/auth/register`, {
+    method: 'POST',
+    body: JSON.stringify({
+      username: `${username}_new`,
+      email,
+      password,
+      passwordConfirmation: password,
+      acceptTerms: true,
+    }),
+  });
+  assert.equal(duplicateBannedEmail.response.status, 409);
+
+  process.stdout.write('Auth E2E thành công: mật khẩu 8 ký tự, đăng ký, email, xác minh, session, đăng xuất, đăng nhập, cấm tài khoản và cầu nối Express.\n');
 } finally {
   child.kill();
   legacyChild.kill();

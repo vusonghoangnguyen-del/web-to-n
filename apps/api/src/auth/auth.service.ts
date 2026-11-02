@@ -47,18 +47,19 @@ export class AuthService {
       user = await this.dataSource.transaction(async (manager) => {
         const userRepository = manager.getRepository(UserEntity);
         const tokenRepository = manager.getRepository(EmailVerificationTokenEntity);
-        if (await userRepository.exists({ where: { email: dto.email } })) {
-          throw new ConflictException('Email này đã có tài khoản.');
+        if (await userRepository.exists({ where: [{ email: dto.email }, { username: dto.username }] })) {
+          throw new ConflictException('Email hoặc tên đăng nhập đã được sử dụng.');
         }
 
         const passwordHash = await bcrypt.hash(dto.password, 12);
         const createdUser = await userRepository.save(
           userRepository.create({
-            name: dto.name,
+            username: dto.username,
+            name: dto.username,
             email: dto.email,
             passwordHash,
             role: UserRole.Reader,
-            status: UserStatus.PendingVerification,
+            status: UserStatus.Active,
             emailVerifiedAt: null,
           }),
         );
@@ -77,7 +78,7 @@ export class AuthService {
     } catch (error) {
       if (error instanceof ConflictException) throw error;
       if (error instanceof QueryFailedError && (error.driverError as { code?: string }).code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('Email này đã có tài khoản.');
+        throw new ConflictException('Email hoặc tên đăng nhập đã được sử dụng.');
       }
       throw error;
     }
@@ -111,9 +112,11 @@ export class AuthService {
 
       const account = await userRepository.findOneBy({ id: verification.userId });
       if (!account) throw new BadRequestException('Tài khoản không còn tồn tại.');
+      if (account.status !== UserStatus.Active) {
+        throw new ForbiddenException('Tài khoản hiện không thể được kích hoạt.');
+      }
 
       verification.consumedAt = now;
-      account.status = UserStatus.Active;
       account.emailVerifiedAt = now;
       await tokenRepository.save(verification);
       await tokenRepository.update(
@@ -128,10 +131,7 @@ export class AuthService {
 
   async resendVerification(email: string): Promise<{ message: string }> {
     const generic = { message: 'Nếu tài khoản tồn tại và chưa xác minh, email mới sẽ được gửi.' };
-    const user = await this.users.findOneBy({
-      email,
-      status: UserStatus.PendingVerification,
-    });
+    const user = await this.users.findOneBy({ email, status: UserStatus.Active });
     if (!user || user.emailVerifiedAt) return generic;
 
     const latest = await this.verificationTokens.findOne({
@@ -166,7 +166,7 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
     }
-    if (user.status === UserStatus.PendingVerification || !user.emailVerifiedAt) {
+    if (!user.emailVerifiedAt) {
       throw new ForbiddenException('Vui lòng xác minh email trước khi đăng nhập.');
     }
     if (user.status !== UserStatus.Active) {
@@ -237,6 +237,7 @@ export class AuthService {
   private toPublicUser(user: UserEntity): PublicUser {
     return {
       id: String(user.id),
+      username: user.username,
       name: user.name,
       email: user.email,
       role: user.role,

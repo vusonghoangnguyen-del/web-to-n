@@ -14,7 +14,7 @@ Giai đoạn 4 chuyển chức năng tài khoản sang NestJS nhưng giữ các 
 
 ## Đăng ký và xác minh email
 
-Tài khoản mới có vai trò `reader`, trạng thái `pending_verification` và chưa thể đăng nhập. Backend tạo token 32 byte ngẫu nhiên, chỉ lưu SHA-256 hash trong MySQL và gửi token gốc qua email xác minh.
+Tài khoản mới có vai trò `reader`, trạng thái `active` và chưa thể đăng nhập cho tới khi `email_verified_at` được ghi nhận. Backend tạo token 32 byte ngẫu nhiên, chỉ lưu SHA-256 hash trong MySQL và gửi token gốc qua email xác minh.
 
 Khi token hợp lệ, backend đặt `email_verified_at`, chuyển tài khoản sang `active`, đánh dấu token đã dùng và tạo session. Token hết hạn sau thời gian cấu hình, chỉ dùng một lần và token cũ bị vô hiệu hóa khi gửi lại.
 
@@ -40,7 +40,8 @@ Express tạm thời hiểu cookie NestJS bằng cách băm token và tra bảng
 Migration `AuthSessionsEmailVerification1762087200000`:
 
 - Thêm vai trò `moderator`.
-- Thêm trạng thái `pending_verification` và `suspended`.
+- Trạng thái tài khoản gồm `active`, `suspended` và `banned`; email của tài khoản bị cấm vẫn được giữ và vẫn có ràng buộc duy nhất.
+- Lưu thời điểm cấm, người thực hiện và lý do cấm; mọi session bị thu hồi ngay khi khóa hoặc cấm.
 - Thêm `users.email_verified_at`.
 - Tạo `sessions`.
 - Tạo `email_verification_tokens`.
@@ -48,7 +49,7 @@ Migration `AuthSessionsEmailVerification1762087200000`:
 
 ## Frontend
 
-- Form đăng ký yêu cầu mật khẩu tối thiểu 12 ký tự, nhập lại mật khẩu và đồng ý điều khoản.
+- Form đăng ký yêu cầu username duy nhất, mật khẩu tối thiểu 8 ký tự, nhập lại mật khẩu và đồng ý điều khoản.
 - Sau đăng ký hiển thị yêu cầu kiểm tra email.
 - Có nút gửi lại email xác minh.
 - `verify-email.html` nhận token và gọi NestJS.
@@ -59,7 +60,9 @@ Migration `AuthSessionsEmailVerification1762087200000`:
 
 Vai trò: `reader`, `editor`, `moderator`, `admin`.
 
-Trạng thái: `pending_verification`, `active`, `suspended`, `disabled`.
+Trạng thái: `active`, `suspended`, `banned`.
+
+Tài khoản chưa xác minh vẫn có trạng thái `active`, nhưng không thể đăng nhập khi `email_verified_at` còn trống. Admin được đổi vai trò, cấm và mở cấm. Moderator được quản lý nội dung và tạm khóa tài khoản reader/editor, nhưng không được đổi vai trò, cấm vĩnh viễn hoặc tác động tới moderator/admin.
 
 `SessionGuard`, `RolesGuard`, decorator `CurrentUser` và `Roles` đã sẵn sàng cho các module NestJS tiếp theo.
 

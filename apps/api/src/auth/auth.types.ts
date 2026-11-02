@@ -2,6 +2,7 @@ import { UserRole, UserStatus } from '../database/entities/user.entity';
 
 export type PublicUser = {
   id: string;
+  username: string;
   name: string;
   email: string;
   role: UserRole;

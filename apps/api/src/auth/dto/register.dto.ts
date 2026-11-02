@@ -1,12 +1,13 @@
 import { Transform } from 'class-transformer';
-import { Equals, IsBoolean, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto {
-  @Transform(({ value }) => String(value).trim().replace(/\s+/g, ' '))
+  @Transform(({ value }) => String(value).trim().toLowerCase())
   @IsString()
-  @MinLength(2)
-  @MaxLength(120)
-  name!: string;
+  @MinLength(3)
+  @MaxLength(30)
+  @Matches(/^[a-z0-9_]+$/, { message: 'Tên đăng nhập chỉ gồm chữ cái, số và dấu gạch dưới.' })
+  username!: string;
 
   @Transform(({ value }) => String(value).trim().toLowerCase())
   @IsEmail()
@@ -14,7 +15,7 @@ export class RegisterDto {
   email!: string;
 
   @IsString()
-  @MinLength(12)
+  @MinLength(8)
   @MaxLength(128)
   password!: string;
 

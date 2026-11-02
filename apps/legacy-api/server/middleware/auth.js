@@ -49,7 +49,7 @@ export async function requireAuth(req, res, next) {
 }
 
 export function requireAdmin(req, res, next) {
-  if (req.user?.role !== 'admin') {
+  if (!['moderator', 'admin'].includes(req.user?.role)) {
     return res.status(403).json({ message: 'Bạn không có quyền truy cập khu vực quản trị.' });
   }
   return next();

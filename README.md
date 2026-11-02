@@ -176,6 +176,8 @@ TypeORM còn tạo bảng kỹ thuật `typeorm_migrations` để ghi nhận mig
 
 ## Xác minh email và session
 
+Tài khoản mới cần username duy nhất (3–30 chữ cái, số hoặc dấu gạch dưới) và mật khẩu tối thiểu 8 ký tự. Tài khoản được tạo với `role=reader`, `status=active`, nhưng chỉ đăng nhập được sau khi bấm liên kết xác minh email. Email của tài khoản bị cấm được giữ lại nên không thể dùng để đăng ký tài khoản mới.
+
 Auth mới chạy tại `/api/v1/auth` trên NestJS. Đăng ký/đăng nhập cũ của Express trả HTTP 410 để không thể bỏ qua xác minh email; Express vẫn chấp nhận session NestJS cho các module nghiệp vụ chưa chuyển.
 
 Trong môi trường local, `MAIL_MODE=preview` lưu email xác minh vào `storage/mail-preview/` thay vì gửi ra Internet. Mở file HTML mới nhất và nhấn liên kết để kiểm tra. Thư mục này không được commit.

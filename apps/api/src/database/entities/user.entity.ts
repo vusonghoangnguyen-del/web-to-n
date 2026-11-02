@@ -1,4 +1,4 @@
-import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BookmarkEntity } from './bookmark.entity';
 import { CommentEntity } from './comment.entity';
 import { ProblemEntity } from './problem.entity';
@@ -15,17 +15,21 @@ export enum UserRole {
 }
 
 export enum UserStatus {
-  PendingVerification = 'pending_verification',
   Active = 'active',
   Suspended = 'suspended',
-  Disabled = 'disabled',
+  Banned = 'banned',
 }
 
 @Entity({ name: 'users' })
 @Index('uq_users_email', ['email'], { unique: true })
+@Index('uq_users_username', ['username'], { unique: true })
+@Index('idx_users_banned_by', ['bannedBy'])
 export class UserEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string;
+
+  @Column({ type: 'varchar', length: 30 })
+  username!: string;
 
   @Column({ type: 'varchar', length: 120 })
   name!: string;
@@ -44,6 +48,19 @@ export class UserEntity {
 
   @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
   emailVerifiedAt!: Date | null;
+
+  @Column({ name: 'banned_at', type: 'timestamp', nullable: true })
+  bannedAt!: Date | null;
+
+  @Column({ name: 'banned_by', type: 'bigint', unsigned: true, nullable: true })
+  bannedBy!: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'banned_by', foreignKeyConstraintName: 'fk_users_banned_by' })
+  bannedByUser!: UserEntity | null;
+
+  @Column({ name: 'ban_reason', type: 'varchar', length: 500, nullable: true })
+  banReason!: string | null;
 
   @Column({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt!: Date;

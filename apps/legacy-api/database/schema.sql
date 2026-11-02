@@ -1,15 +1,22 @@
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(30) NOT NULL,
   name VARCHAR(120) NOT NULL,
   email VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('reader', 'editor', 'moderator', 'admin') NOT NULL DEFAULT 'reader',
-  status ENUM('pending_verification', 'active', 'suspended', 'disabled') NOT NULL DEFAULT 'active',
+  status ENUM('active', 'suspended', 'banned') NOT NULL DEFAULT 'active',
   email_verified_at TIMESTAMP NULL,
+  banned_at TIMESTAMP NULL,
+  banned_by BIGINT UNSIGNED NULL,
+  ban_reason VARCHAR(500) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_users_email (email)
+  UNIQUE KEY uq_users_email (email),
+  UNIQUE KEY uq_users_username (username),
+  KEY idx_users_banned_by (banned_by),
+  CONSTRAINT fk_users_banned_by FOREIGN KEY (banned_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS categories (

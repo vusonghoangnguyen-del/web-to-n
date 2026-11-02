@@ -185,7 +185,8 @@ adminRouter.delete('/comments/:id', async (req, res, next) => {
 adminRouter.get('/users', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.created_at,
+      `SELECT u.id, u.username, u.name, u.email, u.role, u.status, u.email_verified_at,
+              u.banned_at, u.banned_by, u.ban_reason, u.created_at,
               COUNT(DISTINCT p.id) AS problem_count,
               COUNT(DISTINCT s.id) AS solution_count
          FROM users u
@@ -205,25 +206,50 @@ adminRouter.patch('/users/:id', async (req, res, next) => {
   const id = Number(req.params.id);
   const role = String(req.body.role || '');
   const status = String(req.body.status || '');
-  if (!Number.isSafeInteger(id) || id < 1 || !['reader', 'editor', 'moderator', 'admin'].includes(role) || !['pending_verification', 'active', 'suspended', 'disabled'].includes(status)) {
+  const banReason = String(req.body.banReason || '').trim();
+  if (!Number.isSafeInteger(id) || id < 1 || !['reader', 'editor', 'moderator', 'admin'].includes(role) || !['active', 'suspended', 'banned'].includes(status) || banReason.length > 500) {
     return res.status(400).json({ message: 'Thông tin tài khoản không hợp lệ.' });
   }
-  if (id === Number(req.user.id) && (role !== 'admin' || status !== 'active')) {
+  if (status === 'banned' && banReason.length < 3) {
+    return res.status(400).json({ message: 'Hãy nhập lý do cấm tài khoản.' });
+  }
+  if (id === Number(req.user.id) && (role !== req.user.role || status !== 'active')) {
     return res.status(400).json({ message: 'Bạn không thể tự hạ quyền hoặc vô hiệu hóa tài khoản đang dùng.' });
   }
   try {
+    const [targetRows] = await pool.execute('SELECT id, role, status FROM users WHERE id = ? LIMIT 1', [id]);
+    const target = targetRows[0];
+    if (!target) return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
+    if (req.user.role === 'moderator') {
+      if (['moderator', 'admin'].includes(target.role)) {
+        return res.status(403).json({ message: 'Điều hành viên không thể quản lý điều hành viên hoặc admin.' });
+      }
+      if (target.status === 'banned') {
+        return res.status(403).json({ message: 'Chỉ admin được mở cấm tài khoản.' });
+      }
+      if (role !== target.role) {
+        return res.status(403).json({ message: 'Chỉ admin được thay đổi vai trò tài khoản.' });
+      }
+      if (status === 'banned') {
+        return res.status(403).json({ message: 'Chỉ admin được cấm vĩnh viễn tài khoản.' });
+      }
+    }
     const [result] = await pool.execute(
-      "UPDATE users SET role = ?, status = ? WHERE id = ? AND (? <> 'active' OR email_verified_at IS NOT NULL)",
-      [role, status, id, status],
+      `UPDATE users
+          SET role = ?, status = ?,
+              banned_at = CASE WHEN ? = 'banned' THEN CURRENT_TIMESTAMP ELSE NULL END,
+              banned_by = CASE WHEN ? = 'banned' THEN ? ELSE NULL END,
+              ban_reason = CASE WHEN ? = 'banned' THEN ? ELSE NULL END
+        WHERE id = ?`,
+      [role, status, status, status, req.user.id, status, banReason || null, id],
     );
-    if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
     if (status !== 'active') {
       await pool.execute(
         'UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL',
         [id],
       );
     }
-    return res.json({ id, role, status });
+    return res.json({ id, role, status, banReason: status === 'banned' ? banReason : null });
   } catch (error) {
     return next(error);
   }

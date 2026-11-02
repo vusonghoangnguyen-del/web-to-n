@@ -10,6 +10,7 @@ loadEnv({ path: path.join(repoRoot, '.env') });
 
 const base = `http://127.0.0.1:${process.env.PORT || 3000}`;
 const marker = randomUUID().slice(0, 12);
+const username = `smoke_${marker}`;
 const email = `to-toan-smoke-${marker}@example.test`;
 const password = `Smoke-${randomUUID()}`;
 const passwordHash = await bcrypt.hash(password, 12);
@@ -38,8 +39,8 @@ async function request(path, method = 'GET', body, cookie) {
 try {
   assert.equal((await request('/api/health')).data.database, 'connected');
   const [createdUser] = await connection.execute(
-    "INSERT INTO users (name, email, password_hash, status, email_verified_at) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP)",
-    ['Smoke Test', email, passwordHash],
+    "INSERT INTO users (username, name, email, password_hash, status, email_verified_at) VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)",
+    [username, 'Smoke Test', email, passwordHash],
   );
   userId = createdUser.insertId;
   await connection.execute(

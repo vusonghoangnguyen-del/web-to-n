@@ -42,11 +42,11 @@ function setAuthMode(mode) {
   const form = $('#login-form');
   form.dataset.mode = mode;
   $('#auth-name-field').hidden = !register;
-  form.elements.name.required = register;
+  form.elements.username.required = register;
   $$('.register-only', form).forEach((element) => { element.hidden = !register; });
   form.elements.passwordConfirmation.required = register;
   form.elements.acceptTerms.required = register;
-  form.elements.password.minLength = register ? 12 : 1;
+  form.elements.password.minLength = register ? 8 : 1;
   form.elements.password.autocomplete = register ? 'new-password' : 'current-password';
   $('#auth-title').textContent = register ? 'Tạo tài khoản Tờ Toán' : 'Đăng nhập Tờ Toán';
   $('#auth-description').textContent = register ? 'Tạo hồ sơ để đăng bài, gửi lời giải và lưu bài toán.' : 'Tiếp tục hành trình tìm một cách giải mới.';
@@ -109,8 +109,8 @@ function renderUser() {
   accountTrigger.textContent = user ? `${user.name.split(' ').pop()}  ▾` : 'Đăng nhập';
   accountTrigger.classList.toggle('signed-in', Boolean(user));
   accountTrigger.setAttribute('aria-haspopup', user ? 'menu' : 'false');
-  $('#admin-open').hidden = user?.role !== 'admin';
-  $('#account-admin-link').hidden = user?.role !== 'admin';
+  $('#admin-open').hidden = !['moderator', 'admin'].includes(user?.role);
+  $('#account-admin-link').hidden = !['moderator', 'admin'].includes(user?.role);
   accountMenu.hidden = true;
   accountTrigger.setAttribute('aria-expanded', 'false');
   $('#account-avatar').textContent = user?.name?.trim().charAt(0).toUpperCase() || 'T';
@@ -162,7 +162,7 @@ $('#login-form').addEventListener('submit', async (event) => {
   try {
     const payload = action === 'register'
       ? {
-          name: data.get('name'),
+          username: data.get('username'),
           email: data.get('email'),
           password: data.get('password'),
           passwordConfirmation: data.get('passwordConfirmation'),

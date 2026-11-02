@@ -95,19 +95,24 @@ function roleOptions(selected) {
 }
 
 function statusOptions(selected) {
-  return [['pending_verification', 'Chờ xác minh'], ['active', 'Hoạt động'], ['suspended', 'Tạm khóa'], ['disabled', 'Vô hiệu hóa']]
+  const statuses = currentUser.role === 'admin'
+    ? [['active', 'Hoạt động'], ['suspended', 'Tạm khóa'], ['banned', 'Đã cấm']]
+    : [['active', 'Hoạt động'], ['suspended', 'Tạm khóa'], ...(selected === 'banned' ? [['banned', 'Đã cấm']] : [])];
+  return statuses
     .map(([value, label]) => `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
 }
 
 function renderUsers(users) {
   $('#users-table-body').innerHTML = users.map((user) => {
     const isCurrent = Number(user.id) === Number(currentUser.id);
+    const protectedFromModerator = currentUser.role === 'moderator' && (['moderator', 'admin'].includes(user.role) || user.status === 'banned');
+    const roleLocked = currentUser.role !== 'admin';
     return `<tr data-user-id="${user.id}"${isCurrent ? ' class="current-user"' : ''}>
-      <td><strong>${escapeHTML(user.name)}${isCurrent ? ' (bạn)' : ''}</strong><small>${escapeHTML(user.email)}</small></td>
+      <td><strong>@${escapeHTML(user.username)}${isCurrent ? ' (bạn)' : ''}</strong><small>${escapeHTML(user.email)}</small></td>
       <td>${Number(user.problem_count)} bài · ${Number(user.solution_count)} lời giải</td>
-      <td><select data-user-role aria-label="Vai trò của ${escapeHTML(user.name)}">${roleOptions(user.role)}</select></td>
-      <td><select data-user-status aria-label="Trạng thái của ${escapeHTML(user.name)}">${statusOptions(user.status)}</select></td>
-      <td><button class="ink-button" data-save-user${isCurrent ? ' disabled' : ''}>Lưu</button></td>
+      <td><select data-user-role aria-label="Vai trò của ${escapeHTML(user.name)}"${roleLocked ? ' disabled' : ''}>${roleOptions(user.role)}</select></td>
+      <td><select data-user-status aria-label="Trạng thái của ${escapeHTML(user.name)}"${protectedFromModerator ? ' disabled' : ''}>${statusOptions(user.status)}</select>${user.ban_reason ? `<small>Lý do: ${escapeHTML(user.ban_reason)}</small>` : ''}</td>
+      <td><button class="ink-button" data-save-user${isCurrent || protectedFromModerator ? ' disabled' : ''}>Lưu</button></td>
     </tr>`;
   }).join('');
 }
@@ -210,11 +215,14 @@ $('#users-table-body').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-save-user]');
   if (!button) return;
   const row = button.closest('[data-user-id]');
+  const status = $('[data-user-status]', row).value;
+  const banReason = status === 'banned' ? prompt('Nhập lý do cấm tài khoản (bắt buộc):', '') : '';
+  if (status === 'banned' && !banReason) return;
   button.disabled = true;
   try {
     await api(`/api/admin/users/${row.dataset.userId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ role: $('[data-user-role]', row).value, status: $('[data-user-status]', row).value }),
+      body: JSON.stringify({ role: $('[data-user-role]', row).value, status, banReason }),
     });
     notify('Đã cập nhật tài khoản.');
     await loadUsers();
@@ -250,8 +258,8 @@ async function startAdmin() {
   try {
     const session = await api('/api/v1/auth/me');
     currentUser = session.user;
-    if (currentUser.role !== 'admin') {
-      showDenied('Tài khoản hiện tại là độc giả. Hãy cấp quyền admin rồi tải lại trang.');
+    if (!['moderator', 'admin'].includes(currentUser.role)) {
+      showDenied('Tài khoản hiện tại không có quyền quản trị.');
       return;
     }
     $('#admin-name').textContent = currentUser.name.split(' ').pop();

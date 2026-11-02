@@ -42,6 +42,13 @@ try {
   assert.ok(
     migrations.some(
       (migration) =>
+        String(migration.timestamp) === '1762173600000' &&
+        migration.name === 'AccountStatusPolicy1762173600000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
         String(migration.timestamp) === '1762087200000' &&
         migration.name === 'AuthSessionsEmailVerification1762087200000',
     ),
