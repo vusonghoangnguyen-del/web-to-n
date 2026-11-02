@@ -2,7 +2,12 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
+
+const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
+const apiRoot = path.resolve(scriptRoot, '..');
+const repoRoot = path.resolve(apiRoot, '..', '..');
 
 function askHidden(question) {
   return new Promise((resolve) => {
@@ -53,13 +58,13 @@ try {
   }
   await admin.query('FLUSH PRIVILEGES');
 
-  const schema = await fs.readFile(path.resolve('database/schema.sql'), 'utf8');
+  const schema = await fs.readFile(path.join(apiRoot, 'database', 'schema.sql'), 'utf8');
   await admin.changeUser({ database: 'to_toan' });
   await admin.query(schema);
 
   const env = `NODE_ENV=development\nPORT=3000\n\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_NAME=to_toan\nDB_USER=to_toan_app\nDB_PASSWORD=${appPassword}\n\nJWT_SECRET=${jwtSecret}\n`;
   try {
-    await fs.writeFile(path.resolve('.env'), env, { encoding: 'utf8', flag: 'wx' });
+    await fs.writeFile(path.join(repoRoot, '.env'), env, { encoding: 'utf8', flag: 'wx' });
   } catch (error) {
     if (error.code === 'EEXIST') {
       throw new Error('File .env đã tồn tại. Hãy đổi tên hoặc xóa file cũ rồi chạy lại.');

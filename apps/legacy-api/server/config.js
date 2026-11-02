@@ -1,4 +1,8 @@
-import 'dotenv/config';
+import path from 'node:path';
+import { config as loadEnv } from 'dotenv';
+import { repoRoot } from './paths.js';
+
+loadEnv({ path: path.join(repoRoot, '.env') });
 
 const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET'];
 const missing = required.filter((key) => !process.env[key]);

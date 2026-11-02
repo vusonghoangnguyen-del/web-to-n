@@ -1,35 +1,29 @@
 {
-  "name": "to-toan",
+  "name": "to-toan-monorepo",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "description": "Tạp chí bài toán và lời giải của cộng đồng.",
+  "description": "Monorepo cho nền tảng cộng đồng toán học Tờ Toán.",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently -k -n WEB,API -c cyan,green \"npm:dev:web\" \"npm:dev:api\"",
-    "dev:web": "vite --host 0.0.0.0",
-    "dev:api": "node --watch server/index.js",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "start": "node server/index.js",
-    "db:setup": "node scripts/setup-database.js",
-    "db:migrate": "node scripts/migrate-database.js",
-    "db:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-database.ps1",
-    "admin:grant": "node scripts/grant-admin.js",
-    "smoke": "node scripts/smoke-test.js",
-    "check": "node --check script.js && node --check admin.js && node --check problem.js && node --check server/index.js && node --check server/middleware/auth.js && node --check server/routes/admin.js && node --check server/routes/auth.js && node --check server/routes/community.js && node --check server/routes/problems.js && node --check scripts/setup-database.js && node --check scripts/migrate-database.js && node --check scripts/grant-admin.js && node --check scripts/smoke-test.js"
+    "dev:web": "npm run dev --workspace=@to-toan/legacy-web",
+    "dev:api": "npm run dev --workspace=@to-toan/legacy-api",
+    "build": "npm run build --workspace=@to-toan/legacy-web",
+    "preview": "npm run preview --workspace=@to-toan/legacy-web",
+    "start": "npm run start --workspace=@to-toan/legacy-api",
+    "db:setup": "npm run db:setup --workspace=@to-toan/legacy-api",
+    "db:migrate": "npm run db:migrate --workspace=@to-toan/legacy-api",
+    "db:backup": "npm run db:backup --workspace=@to-toan/legacy-api",
+    "admin:grant": "npm run admin:grant --workspace=@to-toan/legacy-api --",
+    "smoke": "npm run smoke --workspace=@to-toan/legacy-api",
+    "check": "npm run check --workspaces --if-present"
   },
   "devDependencies": {
-    "concurrently": "^10.0.6",
-    "vite": "^7.2.2"
+    "concurrently": "^10.0.6"
   },
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^18.0.9",
-    "express": "^5.3.0",
-    "express-rate-limit": "^8.7.2",
-    "helmet": "^8.3.0",
-    "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.24.6"
+  "engines": {
+    "node": ">=20.19"
   }
 }

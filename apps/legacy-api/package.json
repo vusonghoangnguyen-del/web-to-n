@@ -1,0 +1,26 @@
+{
+  "name": "@to-toan/legacy-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "db:setup": "node scripts/setup-database.js",
+    "db:migrate": "node scripts/migrate-database.js",
+    "db:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-database.ps1",
+    "admin:grant": "node scripts/grant-admin.js",
+    "smoke": "node scripts/smoke-test.js",
+    "check": "node --check server/index.js && node --check server/config.js && node --check server/paths.js && node --check server/middleware/auth.js && node --check server/routes/admin.js && node --check server/routes/auth.js && node --check server/routes/community.js && node --check server/routes/problems.js && node --check scripts/setup-database.js && node --check scripts/migrate-database.js && node --check scripts/grant-admin.js && node --check scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.6"
+  }
+}

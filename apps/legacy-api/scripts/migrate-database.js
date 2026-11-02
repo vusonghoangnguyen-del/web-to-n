@@ -1,6 +1,11 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
+
+const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
+const apiRoot = path.resolve(scriptRoot, '..');
 
 function askHidden(question) {
   return new Promise((resolve) => {
@@ -40,7 +45,7 @@ const connection = await mysql.createConnection({
 });
 
 try {
-  const sql = await fs.readFile('database/migrations/001_comments.sql', 'utf8');
+  const sql = await fs.readFile(path.join(apiRoot, 'database', 'migrations', '001_comments.sql'), 'utf8');
   await connection.query(sql);
   console.log('Đã cập nhật database: thêm bảng comments.');
 } finally {

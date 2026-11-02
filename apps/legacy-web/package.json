@@ -1,0 +1,15 @@
+{
+  "name": "@to-toan/legacy-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "node --check script.js && node --check admin.js && node --check problem.js"
+  },
+  "devDependencies": {
+    "vite": "^7.2.2"
+  }
+}

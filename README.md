@@ -18,6 +18,15 @@ Node.js không dùng Python `venv`. Môi trường cô lập của dự án gồ
 
 Khôi phục môi trường trên một máy mới bằng `npm install`.
 
+## Kiến trúc monorepo
+
+Dự án dùng npm workspaces. Các lệnh ở thư mục gốc điều phối hai ứng dụng hiện tại:
+
+- `@to-toan/legacy-web`: frontend Vite trong `apps/legacy-web`.
+- `@to-toan/legacy-api`: Express API và MySQL trong `apps/legacy-api`.
+
+Tên `legacy` cho biết đây là ứng dụng ổn định đang được duy trì trong lúc NestJS và Next.js được xây ở các giai đoạn tiếp theo. Nó không có nghĩa là phần này đã ngừng hoạt động.
+
 ## Thiết lập lần đầu
 
 ```powershell
@@ -89,42 +98,47 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 
 - `npm.cmd run dev`: chạy đồng thời Vite và API với tự động tải lại.
 - `npm.cmd run check`: kiểm tra cú pháp frontend, backend và script thiết lập.
-- `npm.cmd run build`: tạo frontend production trong `dist/`.
+- `npm.cmd run build`: tạo frontend production trong `apps/legacy-web/dist/`.
 - `npm.cmd run db:backup`: tạo bản sao MySQL trong thư mục `backups/` (Windows).
 - `npm.cmd run smoke`: kiểm tra chuỗi API chính bằng dữ liệu tạm và xóa dữ liệu thử sau khi chạy. Cần API đang chạy.
-- `npm.cmd start`: chạy API; khi `NODE_ENV=production`, API phục vụ cả thư mục `dist/`.
+- `npm.cmd start`: chạy API; khi `NODE_ENV=production`, API phục vụ cả `apps/legacy-web/dist/`.
 
 ## Cấu trúc
 
 ```text
 .
-├── database/
-│   ├── migrations/          # Cập nhật cấu trúc database đang dùng
-│   └── schema.sql           # Bảng, khóa ngoại và dữ liệu nền
-├── scripts/
-│   ├── setup-database.js    # Khởi tạo MySQL và sinh .env
-│   ├── migrate-database.js  # Áp dụng bảng thảo luận
-│   ├── grant-admin.js       # Cấp quyền admin theo email
-│   └── smoke-test.js        # Kiểm tra luồng API
-├── server/
-│   ├── middleware/auth.js   # Xác thực cookie JWT
-│   ├── routes/auth.js       # Đăng ký, đăng nhập, đăng xuất
-│   ├── routes/admin.js      # Duyệt bài và quản lý tài khoản
-│   ├── routes/community.js  # Bài đã lưu, video, danh sách nhận tin
-│   ├── routes/problems.js   # Bài toán, bình luận, lời giải
-│   ├── config.js            # Đọc biến môi trường
-│   ├── db.js                # Connection pool MySQL
-│   └── index.js             # Express API
-├── index.html
-├── admin.html               # Dashboard quản trị
-├── admin.js
-├── admin.css
-├── problem.html             # Trang bài toán và thảo luận
-├── problem.js
-├── problem.css
-├── script.js
-├── styles.css
-└── vite.config.js
+├── apps/
+│   ├── legacy-web/          # Frontend Vite đang hoạt động
+│   │   ├── index.html
+│   │   ├── admin.html
+│   │   ├── problem.html
+│   │   ├── *.js
+│   │   ├── *.css
+│   │   ├── vite.config.js
+│   │   └── package.json
+│   └── legacy-api/          # Express API đang hoạt động
+│       ├── database/
+│       │   ├── migrations/
+│       │   └── schema.sql
+│       ├── scripts/
+│       │   ├── backup-database.ps1
+│       │   ├── setup-database.js
+│       │   ├── migrate-database.js
+│       │   ├── grant-admin.js
+│       │   └── smoke-test.js
+│       ├── server/
+│       │   ├── middleware/
+│       │   ├── routes/
+│       │   ├── config.js
+│       │   ├── paths.js
+│       │   ├── db.js
+│       │   └── index.js
+│       └── package.json
+├── packages/                # Package dùng chung ở các giai đoạn sau
+├── backups/                 # Backup local, không commit
+├── .env                     # Cấu hình local, không commit
+├── package.json             # Điều phối npm workspaces
+└── package-lock.json
 ```
 
 ## Dữ liệu và bảo mật

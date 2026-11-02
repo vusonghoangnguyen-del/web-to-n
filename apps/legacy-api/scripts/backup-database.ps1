@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $envFile = Join-Path $projectRoot '.env'
 $backupDir = [IO.Path]::GetFullPath((Join-Path $projectRoot 'backups'))
 

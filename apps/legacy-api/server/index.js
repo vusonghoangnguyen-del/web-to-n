@@ -3,13 +3,13 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { pool } from './db.js';
 import { authRouter } from './routes/auth.js';
 import { problemsRouter } from './routes/problems.js';
 import { adminRouter } from './routes/admin.js';
 import { communityRouter } from './routes/community.js';
+import { webDist } from './paths.js';
 
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -35,11 +35,9 @@ app.use('/api/admin', adminRouter);
 app.use('/api', communityRouter);
 
 if (config.env === 'production') {
-  const root = path.dirname(fileURLToPath(import.meta.url));
-  const dist = path.resolve(root, '..', 'dist');
-  app.use(express.static(dist));
+  app.use(express.static(webDist));
   app.use((req, res, next) => {
-    if (req.method === 'GET' && req.accepts('html')) return res.sendFile(path.join(dist, 'index.html'));
+    if (req.method === 'GET' && req.accepts('html')) return res.sendFile(path.join(webDist, 'index.html'));
     return next();
   });
 }

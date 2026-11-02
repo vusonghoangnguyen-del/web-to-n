@@ -1,7 +1,11 @@
-import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+import { config as loadEnv } from 'dotenv';
 import mysql from 'mysql2/promise';
+import { repoRoot } from '../server/paths.js';
+
+loadEnv({ path: path.join(repoRoot, '.env') });
 
 const base = `http://127.0.0.1:${process.env.PORT || 3000}`;
 const marker = randomUUID().slice(0, 12);

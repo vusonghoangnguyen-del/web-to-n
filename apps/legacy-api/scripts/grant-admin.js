@@ -1,6 +1,10 @@
-import 'dotenv/config';
+import path from 'node:path';
+import { config as loadEnv } from 'dotenv';
 import process from 'node:process';
 import mysql from 'mysql2/promise';
+import { repoRoot } from '../server/paths.js';
+
+loadEnv({ path: path.join(repoRoot, '.env') });
 
 const email = String(process.argv[2] || '').trim().toLowerCase();
 if (!email || !email.includes('@')) {
