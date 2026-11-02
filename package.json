@@ -22,7 +22,12 @@
     "smoke": "npm run smoke --workspace=@to-toan/legacy-api",
     "check": "npm run check --workspaces --if-present",
     "test": "npm run test --workspace=@to-toan/api",
-    "test:e2e": "npm run test:e2e --workspace=@to-toan/api"
+    "test:e2e": "npm run test:e2e --workspace=@to-toan/api",
+    "migration:show": "npm run migration:show --workspace=@to-toan/api",
+    "migration:run": "npm run migration:run --workspace=@to-toan/api",
+    "migration:revert": "npm run migration:revert --workspace=@to-toan/api",
+    "migration:generate": "npm run migration:generate --workspace=@to-toan/api --",
+    "schema:log": "npm run schema:log --workspace=@to-toan/api"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"

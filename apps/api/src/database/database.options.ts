@@ -1,0 +1,22 @@
+import { ConfigService } from '@nestjs/config';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { databaseEntities } from './entities';
+import { BaselineSchema1762080000000 } from './migrations/1762080000000-baseline-schema';
+
+export function createDatabaseOptions(config: ConfigService): TypeOrmModuleOptions {
+  return {
+    type: 'mysql',
+    host: config.getOrThrow<string>('DB_HOST'),
+    port: config.getOrThrow<number>('DB_PORT'),
+    database: config.getOrThrow<string>('DB_NAME'),
+    username: config.getOrThrow<string>('DB_USER'),
+    password: config.getOrThrow<string>('DB_PASSWORD'),
+    charset: 'utf8mb4',
+    entities: databaseEntities,
+    migrations: [BaselineSchema1762080000000],
+    migrationsTableName: 'typeorm_migrations',
+    synchronize: false,
+    migrationsRun: false,
+    logging: config.get<string>('NODE_ENV') === 'development' ? ['error', 'warn'] : ['error'],
+  };
+}

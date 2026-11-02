@@ -1,14 +1,14 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DataSource } from 'typeorm';
 import { HealthResponseDto } from './health-response.dto';
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(private readonly database: DataSource) {}
 
   async check(): Promise<HealthResponseDto> {
     try {
-      await this.database.ping();
+      await this.database.query('SELECT 1');
     } catch {
       throw new ServiceUnavailableException('Không thể kết nối tới cơ sở dữ liệu.');
     }

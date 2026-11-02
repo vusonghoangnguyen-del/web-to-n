@@ -26,6 +26,8 @@ Dự án dùng npm workspaces. Các lệnh ở thư mục gốc điều phối h
 - `@to-toan/legacy-api`: Express API và MySQL trong `apps/legacy-api`.
 - `@to-toan/api`: NestJS API TypeScript mới trong `apps/api`, hiện chạy song song để chuyển đổi an toàn.
 
+NestJS dùng TypeORM với `synchronize: false`. Các Entity ánh xạ schema MySQL hiện tại; mọi thay đổi cấu trúc từ giai đoạn 3 phải đi qua migration được lưu trong Git.
+
 Tên `legacy` cho biết đây là ứng dụng ổn định đang được duy trì trong lúc NestJS và Next.js được xây ở các giai đoạn tiếp theo. Nó không có nghĩa là phần này đã ngừng hoạt động.
 
 ## Thiết lập lần đầu
@@ -105,6 +107,10 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 - `npm.cmd run build`: build frontend và NestJS API production.
 - `npm.cmd run test`: chạy unit test của NestJS.
 - `npm.cmd run test:e2e`: build NestJS rồi kiểm tra HTTP thật với MySQL, Swagger và định dạng lỗi.
+- `npm.cmd run schema:log`: so sánh Entity với schema thật mà không thay đổi database.
+- `npm.cmd run migration:show`: xem migration đã/chưa chạy; yêu cầu mật khẩu MySQL `root`.
+- `npm.cmd run migration:run`: áp dụng migration; mật khẩu `root` được nhập ẩn trong terminal.
+- `npm.cmd run migration:generate -- src/database/migrations/TenMigration`: sinh migration mới từ thay đổi Entity.
 - `npm.cmd run db:backup`: tạo bản sao MySQL trong thư mục `backups/` (Windows).
 - `npm.cmd run smoke`: kiểm tra chuỗi API chính bằng dữ liệu tạm và xóa dữ liệu thử sau khi chạy. Cần API đang chạy.
 - `npm.cmd start`: chạy API; khi `NODE_ENV=production`, API phục vụ cả `apps/legacy-web/dist/`.
@@ -118,7 +124,7 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 │   │   ├── src/
 │   │   │   ├── common/
 │   │   │   ├── config/
-│   │   │   ├── database/
+│   │   │   ├── database/    # TypeORM Entity, DataSource và migration
 │   │   │   └── health/
 │   │   └── test/
 │   ├── legacy-web/          # Frontend Vite đang hoạt động
@@ -164,3 +170,5 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 - MySQL chỉ nên được truy cập từ backend, không kết nối trực tiếp từ trình duyệt.
 
 Các bảng hiện có: `users`, `categories`, `problems`, `problem_categories`, `solutions`, `comments`, `bookmarks`, `videos` và `newsletter_subscriptions`.
+
+TypeORM còn tạo bảng kỹ thuật `typeorm_migrations` để ghi nhận migration đã áp dụng. Không sửa hoặc xóa bảng này bằng tay.
