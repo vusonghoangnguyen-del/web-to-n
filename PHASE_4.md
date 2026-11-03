@@ -40,12 +40,18 @@ Express tạm thời hiểu cookie NestJS bằng cách băm token và tra bảng
 Migration `AuthSessionsEmailVerification1762087200000`:
 
 - Thêm vai trò `moderator`.
-- Trạng thái tài khoản gồm `active`, `suspended` và `banned`; email của tài khoản bị cấm vẫn được giữ và vẫn có ràng buộc duy nhất.
-- Lưu thời điểm cấm, người thực hiện và lý do cấm; mọi session bị thu hồi ngay khi khóa hoặc cấm.
 - Thêm `users.email_verified_at`.
-- Tạo `sessions`.
-- Tạo `email_verification_tokens`.
+- Tạo bảng `sessions`.
+- Tạo bảng `email_verification_tokens`.
 - Đánh dấu tài khoản cũ đang active là đã xác minh để không khóa người dùng hiện tại.
+
+Migration `AccountStatusPolicy1762173600000`:
+
+- Thêm `users.username`, giới hạn 30 ký tự và đặt ràng buộc duy nhất.
+- Chuẩn hóa trạng thái tài khoản thành `active`, `suspended` và `banned`.
+- Thêm `banned_at`, `banned_by` và `ban_reason`.
+- Giữ nguyên email của tài khoản bị cấm và tiếp tục áp dụng ràng buộc duy nhất, vì vậy email đó không thể được dùng để đăng ký lại.
+- Mọi session đang hoạt động bị thu hồi ngay khi tài khoản bị khóa hoặc cấm.
 
 ## Frontend
 
@@ -69,18 +75,42 @@ Tài khoản chưa xác minh vẫn có trạng thái `active`, nhưng không th�
 
 ## Kiểm thử
 
-Auth E2E kiểm tra:
+Bộ kiểm thử tự động và kiểm tra thủ công đã bao phủ:
 
 - Đăng ký tạo tài khoản chờ xác minh.
+- Username và email không được trùng.
+- Mật khẩu từ 8 ký tự được chấp nhận.
 - Chưa xác minh không đăng nhập được.
 - Email preview chứa liên kết hợp lệ.
 - Xác minh kích hoạt tài khoản và tạo cookie.
+- Gửi lại email tạo token mới và vô hiệu hóa token cũ.
 - `/me` phục hồi đúng người dùng.
 - Đăng xuất thu hồi session.
+- Đăng xuất toàn bộ thu hồi tất cả session của tài khoản.
 - Đăng nhập lại thành công.
 - Response không lộ password hash.
 - Session NestJS truy cập được route Express cũ.
+- Admin có thể khóa, cấm, mở khóa và thay đổi vai trò theo chính sách.
+- Moderator chỉ được tạm khóa reader/editor và quản lý nội dung trong phạm vi cho phép.
+- Tài khoản bị cấm không thể đăng nhập hoặc đăng ký lại bằng email cũ.
 - Dữ liệu test và email preview được dọn sau khi chạy.
+
+Email SMTP thật cũng đã được cấu hình và xác nhận hoạt động trong môi trường local. Thông tin đăng nhập SMTP chỉ nằm trong `.env`, không được ghi vào tài liệu hoặc commit lên Git.
+
+## Trạng thái hoàn thành
+
+Giai đoạn 4 đã hoàn thành trong môi trường local:
+
+- Đăng ký, đăng nhập, đăng xuất và khôi phục phiên chạy qua NestJS.
+- Frontend hiện tại sử dụng được API auth mới.
+- Xác minh email và gửi lại email hoạt động.
+- Session được lưu trong MySQL và có thể thu hồi từng phiên hoặc toàn bộ phiên.
+- Admin có thể quản lý trạng thái, vai trò và phiên của tài khoản.
+- Moderator có quyền hạn thấp hơn admin và không thể tác động tới moderator/admin khác.
+- Tài khoản mới mặc định là `reader`, trạng thái `active`, nhưng chỉ được đăng nhập sau khi xác minh email.
+- Tài khoản bị cấm vẫn được giữ lại để bảo toàn lịch sử và ngăn tái đăng ký bằng email cũ.
+
+Các yêu cầu triển khai production như HTTPS, domain thật, SMTP production và DNS email không phải điều kiện hoàn thành local của giai đoạn này.
 
 ## Lưu ý production
 

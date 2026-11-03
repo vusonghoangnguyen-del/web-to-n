@@ -7,14 +7,22 @@ try {
   await dataSource.initialize();
 
   const expectedTables = [
+    'audit_logs',
     'bookmarks',
     'categories',
+    'comment_reports',
     'comments',
     'email_verification_tokens',
     'newsletter_subscriptions',
+    'notifications',
     'problem_categories',
+    'problem_follows',
+    'problem_reactions',
+    'problem_revisions',
     'problems',
     'sessions',
+    'solution_reactions',
+    'solution_revisions',
     'solutions',
     'users',
     'videos',
@@ -51,6 +59,48 @@ try {
       (migration) =>
         String(migration.timestamp) === '1762087200000' &&
         migration.name === 'AuthSessionsEmailVerification1762087200000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762260000000' &&
+        migration.name === 'ProblemsModule1762260000000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762346400000' &&
+        migration.name === 'CommentsModule1762346400000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762432800000' &&
+        migration.name === 'SolutionsModule1762432800000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762519200000' &&
+        migration.name === 'EngagementModule1762519200000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762522800000' &&
+        migration.name === 'FollowNotifications1762522800000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1762605600000' &&
+        migration.name === 'ModerationAudit1762605600000',
     ),
   );
 

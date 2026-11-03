@@ -8,6 +8,11 @@ import { validateEnvironment } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
+import { ProblemsModule } from './problems/problems.module';
+import { CommentsModule } from './comments/comments.module';
+import { SolutionsModule } from './solutions/solutions.module';
+import { EngagementModule } from './engagement/engagement.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -26,6 +31,11 @@ import { AuthModule } from './auth/auth.module';
     DatabaseModule,
     HealthModule,
     AuthModule,
+    ProblemsModule,
+    CommentsModule,
+    SolutionsModule,
+    EngagementModule,
+    ModerationModule,
   ],
   providers: [
     JsonLogger,

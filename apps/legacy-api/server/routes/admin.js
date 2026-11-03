@@ -77,7 +77,7 @@ adminRouter.patch('/problems/:id/status', async (req, res, next) => {
 adminRouter.get('/solutions', async (req, res, next) => {
   const allowed = ['all', 'pending', 'verified', 'rejected'];
   const status = allowed.includes(req.query.status) ? req.query.status : 'pending';
-  const where = status === 'all' ? '' : 'WHERE s.status = ?';
+  const where = status === 'all' ? "WHERE s.status <> 'withdrawn'" : 'WHERE s.status = ?';
   const params = status === 'all' ? [] : [status];
   try {
     const [rows] = await pool.execute(
@@ -105,8 +105,28 @@ adminRouter.patch('/solutions/:id/status', async (req, res, next) => {
     return res.status(400).json({ message: 'Trạng thái lời giải không hợp lệ.' });
   }
   try {
-    const [result] = await pool.execute('UPDATE solutions SET status = ? WHERE id = ?', [status, id]);
+    const [result] = await pool.execute(
+      `UPDATE solutions
+          SET status = ?,
+              reviewed_at = IF(? = 'pending', NULL, CURRENT_TIMESTAMP),
+              reviewed_by = IF(? = 'pending', NULL, ?),
+              review_note = NULL,
+              is_featured = IF(? = 'verified', is_featured, 0),
+              featured_at = IF(? = 'verified', featured_at, NULL),
+              featured_by = IF(? = 'verified', featured_by, NULL)
+        WHERE id = ? AND status <> 'withdrawn'`,
+      [status, status, status, req.user.id, status, status, status, id],
+    );
     if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy lời giải.' });
+    await pool.execute(
+      `INSERT INTO solution_revisions
+        (solution_id, editor_id, version, content, status, change_summary)
+       SELECT id, ?,
+              (SELECT COALESCE(MAX(sr.version), 0) + 1 FROM solution_revisions sr WHERE sr.solution_id = solutions.id),
+              content, status, ?
+         FROM solutions WHERE id = ?`,
+      [req.user.id, `Kiểm duyệt qua API chuyển tiếp: ${status}`, id],
+    );
     return res.json({ id, status });
   } catch (error) {
     return next(error);
@@ -162,7 +182,7 @@ adminRouter.get('/comments', async (_req, res, next) => {
          FROM comments cm
          JOIN problems p ON p.id = cm.problem_id
          JOIN users u ON u.id = cm.user_id
-        WHERE cm.status = 'visible'
+        WHERE cm.status = 'visible' AND cm.deleted_at IS NULL
      ORDER BY cm.created_at DESC, cm.id DESC LIMIT 100`,
     );
     res.json({ comments: rows });

@@ -78,10 +78,10 @@ function renderProblems(problems) {
     return `<article class="moderation-card">
       <div class="moderation-number">${String(index + 1).padStart(2, '0')}</div>
       <div class="moderation-copy">
-        <div class="moderation-meta"><span class="status-chip status-${escapeHTML(problem.status)}">${escapeHTML(statusLabel(problem.status))}</span><span>${escapeHTML(problem.categories || 'Chưa phân loại')}</span><span>${escapeHTML(problem.difficulty)}</span><span>${escapeHTML(formatDate(problem.created_at))}</span></div>
+        <div class="moderation-meta"><span class="status-chip status-${escapeHTML(problem.status)}">${escapeHTML(statusLabel(problem.status))}</span><span>${escapeHTML(problem.categories || 'Chưa phân loại')}</span><span>${escapeHTML(problem.difficulty)}</span><span>${escapeHTML(formatDate(problem.createdAt))}</span></div>
         <h3>${escapeHTML(problem.title)}</h3>
         <p>${escapeHTML(problem.content)}</p>
-        <p class="moderation-author">Gửi bởi <strong>${escapeHTML(problem.author_name)}</strong> · ${escapeHTML(problem.author_email)}</p>
+        <p class="moderation-author">Gửi bởi <strong>${escapeHTML(problem.author.name)}</strong> · ${escapeHTML(problem.author.email)}</p>
         ${safeURL(problem.source) ? `<a class="moderation-source" href="${safeURL(problem.source)}" target="_blank" rel="noopener">Mở nguồn tham khảo ↗</a>` : ''}
       </div>
       <div class="moderation-actions">${actions}</div>
@@ -127,18 +127,38 @@ function renderSolutions(solutions) {
     const actions = solution.status === 'pending'
       ? `<button class="ink-button" data-solution-action="verified" data-id="${solution.id}">Kiểm chứng &amp; công khai</button><button class="outline-button reject-button" data-solution-action="rejected" data-id="${solution.id}">Từ chối</button>`
       : `<button class="outline-button restore-button" data-solution-action="pending" data-id="${solution.id}">Đưa về chờ duyệt</button>${solution.status !== 'verified' ? `<button class="ink-button" data-solution-action="verified" data-id="${solution.id}">Công khai</button>` : `<button class="outline-button reject-button" data-solution-action="rejected" data-id="${solution.id}">Gỡ lời giải</button>`}`;
-    return `<article class="solution-review-card"><div><div class="moderation-meta"><span class="status-chip status-${escapeHTML(solution.status)}">${escapeHTML(statusLabel(solution.status))}</span><span>${escapeHTML(formatDate(solution.created_at))}</span></div><h3>${escapeHTML(solution.problem_title)}</h3><p class="solution-review-author">Lời giải của <strong>${escapeHTML(solution.author_name)}</strong> · ${escapeHTML(solution.author_email)}</p><div class="solution-review-content">${escapeHTML(solution.content)}</div></div><div class="solution-review-actions">${actions}</div></article>`;
+    const featuredAction = solution.status === 'verified' ? `<button class="outline-button" data-feature-solution="${solution.isFeatured ? 'false' : 'true'}" data-id="${solution.id}">${solution.isFeatured ? 'Bỏ nổi bật' : 'Đánh dấu nổi bật'}</button>` : '';
+    return `<article class="solution-review-card"><div><div class="moderation-meta"><span class="status-chip status-${escapeHTML(solution.status)}">${escapeHTML(statusLabel(solution.status))}</span><span>${escapeHTML(formatDate(solution.createdAt))}</span>${solution.isFeatured ? '<span>★ Nổi bật</span>' : ''}</div><h3>${escapeHTML(solution.problem.title)}</h3><p class="solution-review-author">Lời giải của <strong>${escapeHTML(solution.author.name)}</strong> · ${escapeHTML(solution.author.email)}</p><div class="solution-review-content">${escapeHTML(solution.content)}</div>${solution.reviewNote ? `<small>Lý do: ${escapeHTML(solution.reviewNote)}</small>` : ''}</div><div class="solution-review-actions">${actions}${featuredAction}</div></article>`;
   }).join('');
 }
 
+function renderReports(reports) {
+  const list = $('#admin-reports-list');
+  list.innerHTML = reports.length ? reports.map((report) => `<article class="admin-comment-row"><div><div class="moderation-meta"><span class="status-chip status-${escapeHTML(report.status)}">${escapeHTML(report.status)}</span><span>${escapeHTML(report.reason)}</span><span>${escapeHTML(formatDate(report.createdAt))}</span></div><strong>${escapeHTML(report.comment.problem.title)}</strong><p>${escapeHTML(report.comment.content)}</p><small>Báo cáo bởi ${escapeHTML(report.reporter.name)}${report.details ? ` · ${escapeHTML(report.details)}` : ''}</small></div><div class="moderation-actions">${report.status === 'pending' ? `<button class="ink-button" data-report-action="reviewed" data-report-id="${report.id}" data-hide-reported-comment="true">Ẩn bình luận &amp; xử lý</button><button class="outline-button" data-report-action="dismissed" data-report-id="${report.id}" data-hide-reported-comment="false">Bỏ qua</button>` : `<small>${report.reviewer ? `Xử lý bởi ${escapeHTML(report.reviewer.name)}` : 'Đã xử lý'}</small>`}</div></article>`).join('') : '<p class="admin-empty">Không có báo cáo đang chờ xử lý.</p>';
+}
+
+function renderAuditLogs(logs) {
+  $('#admin-audit-list').innerHTML = logs.length ? logs.map((log) => `<article class="admin-comment-row"><div><strong>${escapeHTML(log.action)}</strong><p>${escapeHTML(log.targetType)} #${escapeHTML(log.targetId)}</p><small>${escapeHTML(log.actor?.name || 'Tài khoản đã xóa')} · ${escapeHTML(formatDate(log.createdAt))}</small></div></article>`).join('') : '<p class="admin-empty">Chưa có hành động kiểm duyệt nào.</p>';
+}
+
+async function loadReports() {
+  const result = await api('/api/v1/moderation/reports?status=all&limit=100');
+  renderReports(result.reports);
+}
+
+async function loadAuditLogs() {
+  const result = await api('/api/v1/moderation/audit-logs?limit=50');
+  renderAuditLogs(result.auditLogs);
+}
+
 async function loadStats() {
-  const result = await api('/api/admin/stats');
+  const result = await api('/api/v1/moderation/stats');
   renderStats(result.stats);
 }
 
 async function loadProblems() {
   const status = $('#problem-status-filter').value;
-  const result = await api(`/api/admin/problems?status=${encodeURIComponent(status)}`);
+  const result = await api(`/api/v1/moderation/problems?status=${encodeURIComponent(status)}&limit=100`);
   renderProblems(result.problems);
 }
 
@@ -149,7 +169,7 @@ async function loadUsers() {
 
 async function loadSolutions() {
   const status = $('#solution-status-filter').value;
-  const result = await api(`/api/admin/solutions?status=${encodeURIComponent(status)}`);
+  const result = await api(`/api/v1/solutions/moderation?status=${encodeURIComponent(status)}&limit=100`);
   renderSolutions(result.solutions);
 }
 
@@ -159,15 +179,26 @@ async function loadVideos() {
 }
 
 async function loadComments() {
-  const result = await api('/api/admin/comments');
-  $('#admin-comments-list').innerHTML = result.comments.length ? result.comments.map((comment) => `<article class="admin-comment-row"><div><small>${escapeHTML(comment.author_name)} · ${escapeHTML(formatDate(comment.created_at))} · <a href="/problem.html?id=${Number(comment.problem_id)}#thao-luan">${escapeHTML(comment.problem_title)}</a></small><p>${escapeHTML(comment.content)}</p></div><button class="outline-button reject-button" type="button" data-hide-comment="${Number(comment.id)}">Ẩn bình luận</button></article>`).join('') : '<p class="admin-empty">Chưa có bình luận nào.</p>';
+  const result = await api('/api/v1/moderation/comments?status=all&limit=100');
+  $('#admin-comments-list').innerHTML = result.comments.length ? result.comments.map((comment) => `<article class="admin-comment-row"><div><small>${escapeHTML(comment.author.name)} · ${escapeHTML(formatDate(comment.createdAt))} · <a href="/problem.html?id=${Number(comment.problem.id)}#thao-luan">${escapeHTML(comment.problem.title)}</a></small><p>${escapeHTML(comment.content)}</p></div><button class="outline-button ${comment.status === 'hidden' ? 'restore-button' : 'reject-button'}" type="button" data-comment-hidden="${comment.status !== 'hidden'}" data-comment-id="${Number(comment.id)}">${comment.status === 'hidden' ? 'Hiện lại' : 'Ẩn bình luận'}</button></article>`).join('') : '<p class="admin-empty">Chưa có bình luận nào.</p>';
 }
 $('#admin-comments-list').addEventListener('click', async (event) => {
-  const button = event.target.closest('[data-hide-comment]');
-  if (!button || !confirm('Ẩn bình luận này khỏi bài toán?')) return;
+  const button = event.target.closest('[data-comment-id]');
+  if (!button || !confirm(`${button.dataset.commentHidden === 'true' ? 'Ẩn' : 'Hiện lại'} bình luận này?`)) return;
   button.disabled = true;
-  try { await api(`/api/admin/comments/${button.dataset.hideComment}`, { method: 'DELETE' }); await loadComments(); notify('Đã ẩn bình luận.'); }
+  try { await api(`/api/v1/moderation/comments/${button.dataset.commentId}/visibility`, { method: 'PATCH', body: JSON.stringify({ hidden: button.dataset.commentHidden === 'true' }) }); await Promise.all([loadComments(), loadAuditLogs()]); notify('Đã cập nhật bình luận.'); }
   catch (error) { button.disabled = false; notify(error.message); }
+});
+
+$('#admin-reports-list').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-report-id]');
+  if (!button || !confirm(button.dataset.reportAction === 'reviewed' ? 'Ẩn bình luận và đánh dấu báo cáo đã xử lý?' : 'Bỏ qua báo cáo này?')) return;
+  button.disabled = true;
+  try {
+    await api(`/api/v1/moderation/reports/${button.dataset.reportId}`, { method: 'PATCH', body: JSON.stringify({ status: button.dataset.reportAction, hideComment: button.dataset.hideReportedComment === 'true' }) });
+    await Promise.all([loadReports(), loadComments(), loadAuditLogs(), loadStats()]);
+    notify('Đã xử lý báo cáo.');
+  } catch (error) { button.disabled = false; notify(error.message); }
 });
 
 $('#admin-video-form').addEventListener('submit', async (event) => {
@@ -202,9 +233,9 @@ $('#moderation-list').addEventListener('click', async (event) => {
   if (!confirm(`Xác nhận chuyển bài toán sang trạng thái “${label}”?`)) return;
   button.disabled = true;
   try {
-    await api(`/api/admin/problems/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
+    await api(`/api/v1/moderation/problems/${button.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
     notify(`Đã cập nhật bài toán: ${statusLabel(nextStatus)}.`);
-    await Promise.all([loadStats(), loadProblems()]);
+    await Promise.all([loadStats(), loadProblems(), loadAuditLogs()]);
   } catch (error) {
     button.disabled = false;
     notify(error.message);
@@ -233,15 +264,27 @@ $('#users-table-body').addEventListener('click', async (event) => {
 });
 
 $('#solution-review-list').addEventListener('click', async (event) => {
+  const featureButton = event.target.closest('[data-feature-solution]');
+  if (featureButton) {
+    featureButton.disabled = true;
+    try {
+      await api(`/api/v1/solutions/${featureButton.dataset.id}/featured`, { method: 'PATCH', body: JSON.stringify({ featured: featureButton.dataset.featureSolution === 'true' }) });
+      notify('Đã cập nhật trạng thái nổi bật.');
+      await Promise.all([loadSolutions(), loadAuditLogs()]);
+    } catch (error) { featureButton.disabled = false; notify(error.message); }
+    return;
+  }
   const button = event.target.closest('[data-solution-action]');
   if (!button) return;
   const nextStatus = button.dataset.solutionAction;
   if (!confirm(`Xác nhận chuyển lời giải sang trạng thái “${statusLabel(nextStatus).toLowerCase()}”?`)) return;
+  const reviewNote = nextStatus === 'rejected' ? prompt('Nhập lý do từ chối lời giải:', '') : '';
+  if (nextStatus === 'rejected' && !reviewNote) return;
   button.disabled = true;
   try {
-    await api(`/api/admin/solutions/${button.dataset.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
+    await api(`/api/v1/solutions/${button.dataset.id}/review`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus, reviewNote }) });
     notify(`Đã cập nhật lời giải: ${statusLabel(nextStatus)}.`);
-    await Promise.all([loadStats(), loadSolutions()]);
+    await Promise.all([loadStats(), loadSolutions(), loadAuditLogs()]);
   } catch (error) {
     button.disabled = false;
     notify(error.message);
@@ -265,7 +308,7 @@ async function startAdmin() {
     $('#admin-name').textContent = currentUser.name.split(' ').pop();
     gate.hidden = true;
     app.hidden = false;
-    await Promise.all([loadStats(), loadProblems(), loadSolutions(), loadComments(), loadVideos(), loadUsers()]);
+    await Promise.all([loadStats(), loadProblems(), loadSolutions(), loadComments(), loadReports(), loadAuditLogs(), loadVideos(), loadUsers()]);
   } catch (error) {
     showDenied(error.status === 401 ? 'Bạn cần đăng nhập bằng tài khoản admin ở trang chính.' : error.message);
   }

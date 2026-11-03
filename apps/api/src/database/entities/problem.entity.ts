@@ -30,6 +30,8 @@ export enum ProblemStatus {
 @Entity({ name: 'problems' })
 @Index('idx_problems_author', ['authorId'])
 @Index('idx_problems_status_created', ['status', 'createdAt'])
+@Index('uq_problems_slug', ['slug'], { unique: true })
+@Index('idx_problems_public_list', ['status', 'deletedAt', 'publishedAt'])
 export class ProblemEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string;
@@ -43,6 +45,9 @@ export class ProblemEntity {
 
   @Column({ type: 'varchar', length: 255 })
   title!: string;
+
+  @Column({ type: 'varchar', length: 280 })
+  slug!: string;
 
   @Column({ type: 'text' })
   content!: string;
@@ -69,6 +74,9 @@ export class ProblemEntity {
     onUpdate: 'CURRENT_TIMESTAMP',
   })
   updatedAt!: Date;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt!: Date | null;
 
   @OneToMany(() => ProblemCategoryEntity, (link) => link.problem)
   categoryLinks!: ProblemCategoryEntity[];

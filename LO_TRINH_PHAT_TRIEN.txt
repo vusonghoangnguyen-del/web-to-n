@@ -237,7 +237,7 @@ Thứ tự chuyển:
 - Thích bài và lời giải.
 - Theo dõi bài để nhận thông báo.
 
-5.5 Moderation
+5.5 Moderation [HOÀN THÀNH]
 - Duyệt bài và lời giải.
 - Ẩn bình luận.
 - Xử lý báo cáo.

@@ -4,6 +4,29 @@ import { requireAuth } from '../middleware/auth.js';
 
 export const problemsRouter = Router();
 
+function slugBase(title) {
+  return title
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 240)
+    .replace(/-+$/g, '') || 'bai-toan';
+}
+
+async function uniqueProblemSlug(connection, title) {
+  const base = slugBase(title);
+  for (let suffix = 0; suffix < 1000; suffix += 1) {
+    const slug = suffix === 0 ? base : `${base}-${suffix + 1}`;
+    const [rows] = await connection.execute('SELECT id FROM problems WHERE slug = ? LIMIT 1', [slug]);
+    if (!rows[0]) return slug;
+  }
+  throw new Error('Không thể tạo đường dẫn duy nhất cho bài toán.');
+}
+
 async function attachCommentCounts(problems) {
   if (!problems.length) return problems;
   try {
@@ -72,7 +95,7 @@ problemsRouter.get('/solutions/mine', requireAuth, async (req, res, next) => {
       `SELECT s.id, s.status, s.created_at, p.id AS problem_id,
               p.title AS problem_title, p.status AS problem_status
          FROM solutions s JOIN problems p ON p.id = s.problem_id
-        WHERE s.author_id = ?
+        WHERE s.author_id = ? AND s.status <> 'withdrawn'
      ORDER BY s.created_at DESC LIMIT 100`,
       [req.user.id],
     );
@@ -85,7 +108,9 @@ problemsRouter.get('/:id/comments', async (req, res, next) => {
   if (!Number.isSafeInteger(problemId) || problemId < 1) return res.status(400).json({ message: 'Bài toán không hợp lệ.' });
   try {
     const [rows] = await pool.execute(
-      `SELECT cm.id, cm.problem_id, cm.user_id, cm.parent_id, cm.content, cm.created_at, cm.updated_at,
+      `SELECT cm.id, cm.problem_id, cm.user_id, cm.parent_id,
+              CASE WHEN cm.deleted_at IS NULL THEN cm.content ELSE '[Bình luận đã được xóa]' END AS content,
+              cm.created_at, cm.updated_at, cm.edited_at, cm.deleted_at,
               u.name AS author_name, u.role AS author_role
          FROM comments cm
          JOIN users u ON u.id = cm.user_id
@@ -150,7 +175,10 @@ problemsRouter.delete('/comments/:commentId', requireAuth, async (req, res, next
     if (Number(rows[0].user_id) !== Number(req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Bạn không có quyền xóa bình luận này.' });
     }
-    await pool.execute("UPDATE comments SET status = 'hidden', content = '[Bình luận đã được xóa]' WHERE id = ?", [commentId]);
+    await pool.execute(
+      'UPDATE comments SET deleted_at = CURRENT_TIMESTAMP, deleted_by = ? WHERE id = ?',
+      [req.user.id, commentId],
+    );
     return res.status(204).end();
   } catch (error) {
     return next(error);
@@ -164,7 +192,7 @@ problemsRouter.get('/:id/solutions/mine', requireAuth, async (req, res, next) =>
     const [rows] = await pool.execute(
       `SELECT id, problem_id, content, status, created_at, updated_at
          FROM solutions
-        WHERE problem_id = ? AND author_id = ?
+        WHERE problem_id = ? AND author_id = ? AND status <> 'withdrawn'
      ORDER BY created_at DESC`,
       [problemId, req.user.id],
     );
@@ -212,6 +240,12 @@ problemsRouter.post('/:id/solutions', requireAuth, async (req, res, next) => {
       'INSERT INTO solutions (problem_id, author_id, content) VALUES (?, ?, ?)',
       [problemId, req.user.id, content],
     );
+    await pool.execute(
+      `INSERT INTO solution_revisions
+        (solution_id, editor_id, version, content, status, change_summary)
+       VALUES (?, ?, 1, ?, 'pending', ?)`,
+      [result.insertId, req.user.id, content, 'Gửi lời giải qua API chuyển tiếp'],
+    );
     res.status(201).json({
       solution: { id: result.insertId, problem_id: problemId, content, status: 'pending', created_at: new Date().toISOString() },
     });
@@ -229,7 +263,22 @@ problemsRouter.delete('/solutions/:solutionId', requireAuth, async (req, res, ne
     if (Number(rows[0].author_id) !== Number(req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Bạn không có quyền xóa lời giải này.' });
     }
-    await pool.execute('DELETE FROM solutions WHERE id = ?', [solutionId]);
+    await pool.execute(
+      `UPDATE solutions
+          SET status = 'withdrawn', withdrawn_at = CURRENT_TIMESTAMP,
+              is_featured = 0, featured_at = NULL, featured_by = NULL
+        WHERE id = ?`,
+      [solutionId],
+    );
+    await pool.execute(
+      `INSERT INTO solution_revisions
+        (solution_id, editor_id, version, content, status, change_summary)
+       SELECT id, ?,
+              (SELECT COALESCE(MAX(sr.version), 0) + 1 FROM solution_revisions sr WHERE sr.solution_id = solutions.id),
+              content, status, ?
+         FROM solutions WHERE id = ?`,
+      [req.user.id, 'Rút lời giải qua API chuyển tiếp', solutionId],
+    );
     return res.status(204).end();
   } catch (error) {
     return next(error);
@@ -295,9 +344,10 @@ problemsRouter.post('/', requireAuth, async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    const slug = await uniqueProblemSlug(connection, title);
     const [result] = await connection.execute(
-      'INSERT INTO problems (author_id, title, content, source, difficulty) VALUES (?, ?, ?, ?, ?)',
-      [req.user.id, title, content, source, difficulty],
+      'INSERT INTO problems (author_id, title, slug, content, source, difficulty) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, title, slug, content, source, difficulty],
     );
     const [categories] = await connection.execute('SELECT id FROM categories WHERE slug = ? LIMIT 1', [tag]);
     if (!categories[0]) {
@@ -307,6 +357,12 @@ problemsRouter.post('/', requireAuth, async (req, res, next) => {
     await connection.execute(
       'INSERT INTO problem_categories (problem_id, category_id) VALUES (?, ?)',
       [result.insertId, categories[0].id],
+    );
+    await connection.execute(
+      `INSERT INTO problem_revisions
+        (problem_id, editor_id, version, title, content, source, difficulty, status, category_slugs, change_summary)
+       VALUES (?, ?, 1, ?, ?, ?, ?, 'pending', JSON_ARRAY(?), ?)`,
+      [result.insertId, req.user.id, title, content, source, difficulty, tag, 'Tạo bài toán qua API chuyển tiếp'],
     );
     await connection.commit();
     res.status(201).json({

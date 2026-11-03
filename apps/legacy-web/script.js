@@ -77,10 +77,11 @@ function toggleAccountMenu() {
 function renderAccountNotifications() {
   const list = $('#account-notifications');
   const count = $('#account-notification-count');
-  count.textContent = String(accountNotifications.length);
-  count.hidden = accountNotifications.length === 0;
-  $('#account-notification-summary').textContent = accountNotifications.length
-    ? `${accountNotifications.length} cập nhật về nội dung của bạn`
+  const unreadCount = accountNotifications.filter((item) => item.unread !== false).length;
+  count.textContent = String(unreadCount);
+  count.hidden = unreadCount === 0;
+  $('#account-notification-summary').textContent = unreadCount
+    ? `${unreadCount} thông báo chưa đọc`
     : 'Không có thông báo mới';
   list.innerHTML = accountNotifications.length
     ? accountNotifications.slice(0, 5).map((item) => `<a href="${item.href}" data-account-close><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.message)}</small></a>`).join('')
@@ -114,10 +115,17 @@ accountMenu.addEventListener('click', (event) => {
 document.addEventListener('click', closeAccountMenu);
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeAccountMenu(); });
 $$('[data-account-close]').forEach((element) => element.addEventListener('click', closeAccountMenu));
-$('#account-notifications-toggle').addEventListener('click', () => {
+$('#account-notifications-toggle').addEventListener('click', async () => {
   const panel = $('#account-notifications');
   panel.hidden = !panel.hidden;
   $('#account-notifications-toggle').setAttribute('aria-expanded', String(!panel.hidden));
+  if (!panel.hidden && accountNotifications.some((item) => item.kind === 'follow' && item.unread)) {
+    try {
+      await api('/api/v1/notifications/read', { method: 'PATCH' });
+      accountNotifications.forEach((item) => { if (item.kind === 'follow') item.unread = false; });
+      renderAccountNotifications();
+    } catch (error) { notify(error.message); }
+  }
 });
 $('#profile-login').addEventListener('click', showLogin);
 async function logout() {
@@ -129,6 +137,7 @@ async function logout() {
   $('#my-problems').replaceChildren();
   $('#my-solutions-summary').replaceChildren();
   $('#my-bookmarks').replaceChildren();
+  $('#my-follows').replaceChildren();
   renderUser();
   notify('Bạn đã đăng xuất.');
 }
@@ -182,7 +191,18 @@ $('#publish-form').addEventListener('submit', async (event) => {
   const submit = form.querySelector('[type="submit"]');
   submit.disabled = true;
   try {
-    await api('/api/problems', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+    const values = Object.fromEntries(new FormData(form));
+    await api('/api/v1/problems', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: values.title,
+        body: values.body,
+        source: values.source,
+        difficulty: values.difficulty,
+        categorySlugs: [values.tag],
+        status: 'pending',
+      }),
+    });
     publishDialog.close();
     form.reset();
     await loadMyProblems();
@@ -195,8 +215,8 @@ const categoryName = { 'so-hoc': 'Số học', 'hinh-hoc': 'Hình học', 'dai-s
 function problemCard(item) {
   const id = Number(item.id);
   const saved = bookmarks.has(id);
-  const tag = (item.tags || '').split(' ')[0];
-  return `<article class="problem-card" data-problem-id="${id}"><div class="card-top"><span class="number">№ ${id}</span><button class="bookmark${saved ? ' saved' : ''}" type="button" data-bookmark="${id}" aria-label="${saved ? 'Bỏ lưu' : 'Lưu'} bài ${escapeHTML(item.title)}" aria-pressed="${saved}">${saved ? '★' : '☆'}</button></div><span class="rubric">${escapeHTML(categoryName[tag] || 'Bài toán cộng đồng')}</span><h3><a class="card-title-link" href="/problem.html?id=${id}">${escapeHTML(item.title)}</a></h3><p>${escapeHTML(item.body)}</p><div class="card-stats"><span class="difficulty medium">${escapeHTML(item.difficulty)}</span><span>${Number(item.comment_count || 0)} thảo luận</span></div><a class="text-button discussion-link" href="/problem.html?id=${id}">Đọc &amp; gửi lời giải <span>→</span></a></article>`;
+  const category = item.categories?.[0]?.name || 'Bài toán cộng đồng';
+  return `<article class="problem-card" data-problem-id="${id}"><div class="card-top"><span class="number">№ ${id}</span><button class="bookmark${saved ? ' saved' : ''}" type="button" data-bookmark="${id}" aria-label="${saved ? 'Bỏ lưu' : 'Lưu'} bài ${escapeHTML(item.title)}" aria-pressed="${saved}">${saved ? '★' : '☆'}</button></div><span class="rubric">${escapeHTML(category)}</span><h3><a class="card-title-link" href="/problem.html?id=${id}">${escapeHTML(item.title)}</a></h3><p>${escapeHTML(item.body)}</p><div class="card-stats"><span class="difficulty medium">${escapeHTML(item.difficulty)}</span><span>${Number(item.commentCount || 0)} thảo luận</span></div><a class="text-button discussion-link" href="/problem.html?id=${id}">Đọc &amp; gửi lời giải <span>→</span></a></article>`;
 }
 function updateBookmarkButtons() {
   $$('[data-bookmark]').forEach((button) => {
@@ -215,7 +235,7 @@ $('#problem-grid').addEventListener('click', (event) => {
     button.disabled = true;
     try {
       const saved = bookmarks.has(id);
-      await api(`/api/bookmarks/${id}`, { method: saved ? 'DELETE' : 'PUT' });
+      await api(`/api/v1/bookmarks/${id}`, { method: saved ? 'DELETE' : 'PUT' });
       if (saved) bookmarks.delete(id); else bookmarks.add(id);
       updateBookmarkButtons();
       await loadBookmarks();
@@ -233,15 +253,15 @@ function renderLead(items) {
   $('#lead-difficulty').textContent = first.difficulty;
   $('#lead-link').href = `/problem.html?id=${Number(first.id)}`;
   $('#lead-link').innerHTML = 'Đọc bài toán <span>→</span>';
-  $('#lead-date').textContent = `Bài của ${first.author}`;
-  $('#recent-list').innerHTML = items.slice(0, 5).map((item, index) => `<li><span>${String(index + 1).padStart(2, '0')}</span><div><a href="/problem.html?id=${Number(item.id)}">${escapeHTML(item.title)}</a><small>${escapeHTML(item.difficulty)} · ${Number(item.comment_count || 0)} thảo luận</small></div></li>`).join('');
+  $('#lead-date').textContent = `Bài của ${first.author.name}`;
+  $('#recent-list').innerHTML = items.slice(0, 5).map((item, index) => `<li><span>${String(index + 1).padStart(2, '0')}</span><div><a href="/problem.html?id=${Number(item.id)}">${escapeHTML(item.title)}</a><small>${escapeHTML(item.difficulty)} · ${Number(item.commentCount || 0)} thảo luận</small></div></li>`).join('');
 }
 async function loadProblems(reset = true) {
   if (reset) page = 1;
   const serial = ++requestSerial;
   const query = new URLSearchParams({ page: String(page), category: filter, difficulty: $('#difficulty-filter').value, search: $('#problem-search').value.trim() });
   try {
-    const result = await api(`/api/problems?${query}`);
+    const result = await api(`/api/v1/problems?${query}`);
     if (serial !== requestSerial) return;
     if (reset) $('#problem-grid').replaceChildren();
     $('#problem-grid').insertAdjacentHTML('beforeend', result.problems.map(problemCard).join(''));
@@ -273,7 +293,7 @@ function profileRow(item, badge, href = null) {
 async function loadMyProblems() {
   if (!user) return;
   try {
-    const result = await api('/api/problems/mine');
+    const result = await api('/api/v1/problems/mine');
     accountNotifications = accountNotifications.filter((item) => item.kind !== 'problem');
     accountNotifications.push(...result.problems.filter((item) => ['pending', 'rejected'].includes(item.status)).map((item) => ({
       kind: 'problem',
@@ -288,29 +308,52 @@ async function loadMyProblems() {
 async function loadBookmarks() {
   if (!user) return;
   try {
-    const result = await api('/api/bookmarks');
+    const result = await api('/api/v1/bookmarks');
     bookmarks = new Set(result.bookmarks.map((item) => Number(item.id)));
     $('#my-bookmarks').innerHTML = result.bookmarks.length ? result.bookmarks.map((item) => profileRow(item, item.difficulty, `/problem.html?id=${Number(item.id)}`)).join('') : '<p class="home-muted">Chưa có bài nào được lưu.</p>';
     updateBookmarkButtons();
   } catch (error) { notify(error.message); }
 }
+
+async function loadFollows() {
+  if (!user) return;
+  try {
+    const result = await api('/api/v1/follows');
+    $('#my-follows').innerHTML = result.follows.length ? result.follows.map((item) => profileRow(item, item.difficulty, `/problem.html?id=${Number(item.id)}`)).join('') : '<p class="home-muted">Bạn chưa theo dõi bài toán nào.</p>';
+  } catch (error) { notify(error.message); }
+}
+async function loadFollowNotifications() {
+  if (!user) return;
+  try {
+    const result = await api('/api/v1/notifications');
+    accountNotifications = accountNotifications.filter((item) => item.kind !== 'follow');
+    accountNotifications.push(...result.notifications.map((item) => ({
+      kind: 'follow',
+      title: item.problem.title,
+      message: item.message,
+      href: `/problem.html?id=${Number(item.problem.id)}`,
+      unread: !item.read,
+    })));
+    renderAccountNotifications();
+  } catch (error) { notify(error.message); }
+}
 async function loadMySolutions() {
   if (!user) return;
   try {
-    const result = await api('/api/problems/solutions/mine');
+    const result = await api('/api/v1/solutions/mine?limit=100');
     accountNotifications = accountNotifications.filter((item) => item.kind !== 'solution');
     accountNotifications.push(...result.solutions.filter((item) => ['pending', 'rejected'].includes(item.status)).map((item) => ({
       kind: 'solution',
-      title: item.problem_title,
+      title: item.problem.title,
       message: item.status === 'pending' ? 'Lời giải đang chờ kiểm chứng.' : 'Lời giải chưa được duyệt.',
       href: '#ho-so',
     })));
     renderAccountNotifications();
     const labels = { pending: 'Chờ duyệt', verified: 'Đã kiểm chứng', rejected: 'Đã từ chối' };
-    $('#my-solutions-summary').innerHTML = result.solutions.length ? result.solutions.map((item) => profileRow({ title: item.problem_title, status: item.status }, labels[item.status] || item.status, item.problem_status === 'published' ? `/problem.html?id=${Number(item.problem_id)}#loi-giai` : null)).join('') : '<p class="home-muted">Bạn chưa gửi lời giải nào.</p>';
+    $('#my-solutions-summary').innerHTML = result.solutions.length ? result.solutions.map((item) => profileRow({ title: item.problem.title, status: item.status }, labels[item.status] || item.status, item.problem.status === 'published' ? `/problem.html?id=${Number(item.problem.id)}#loi-giai` : null)).join('') : '<p class="home-muted">Bạn chưa gửi lời giải nào.</p>';
   } catch (error) { notify(error.message); }
 }
-async function loadProfile() { await Promise.all([loadMyProblems(), loadMySolutions(), loadBookmarks()]); }
+async function loadProfile() { await Promise.all([loadMyProblems(), loadMySolutions(), loadBookmarks(), loadFollows(), loadFollowNotifications()]); }
 
 async function loadFeaturedSolutions() {
   try {

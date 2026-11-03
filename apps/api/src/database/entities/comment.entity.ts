@@ -19,6 +19,8 @@ export enum CommentStatus {
 @Index('idx_comments_problem_created', ['problemId', 'createdAt'])
 @Index('idx_comments_user', ['userId'])
 @Index('idx_comments_parent', ['parentId'])
+@Index('idx_comments_visible_page', ['problemId', 'status', 'deletedAt', 'createdAt'])
+@Index('idx_comments_deleted_by', ['deletedBy'])
 export class CommentEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id!: string;
@@ -66,4 +68,17 @@ export class CommentEntity {
     onUpdate: 'CURRENT_TIMESTAMP',
   })
   updatedAt!: Date;
+
+  @Column({ name: 'edited_at', type: 'timestamp', nullable: true })
+  editedAt!: Date | null;
+
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt!: Date | null;
+
+  @Column({ name: 'deleted_by', type: 'bigint', unsigned: true, nullable: true })
+  deletedBy!: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'deleted_by', foreignKeyConstraintName: 'fk_comments_deleted_by' })
+  deletedByUser!: UserEntity | null;
 }
