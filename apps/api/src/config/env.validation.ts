@@ -64,11 +64,11 @@ export function validateEnvironment(config: RawEnvironment): ValidatedEnvironmen
     CORS_ORIGINS:
       typeof config.CORS_ORIGINS === 'string' && config.CORS_ORIGINS.trim()
         ? config.CORS_ORIGINS.trim()
-        : 'http://localhost:5173',
+        : 'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5174',
     APP_WEB_URL:
       typeof config.APP_WEB_URL === 'string' && config.APP_WEB_URL.trim()
         ? config.APP_WEB_URL.trim().replace(/\/$/, '')
-        : 'http://localhost:5173',
+        : 'http://127.0.0.1:5174',
     MAIL_MODE: mailMode,
     MAIL_HOST: typeof config.MAIL_HOST === 'string' ? config.MAIL_HOST.trim() : undefined,
     MAIL_PORT: parsePort(config.MAIL_PORT, 587, 'MAIL_PORT'),

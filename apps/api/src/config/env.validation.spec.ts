@@ -15,7 +15,8 @@ describe('validateEnvironment', () => {
 
     expect(result.NEST_PORT).toBe(3001);
     expect(result.DB_PORT).toBe(3306);
-    expect(result.CORS_ORIGINS).toBe('http://localhost:5173');
+    expect(result.CORS_ORIGINS).toBe('http://localhost:5173,http://localhost:5174,http://127.0.0.1:5174');
+    expect(result.APP_WEB_URL).toBe('http://127.0.0.1:5174');
     expect(result.MAIL_MODE).toBe('preview');
     expect(result.SESSION_TTL_DAYS).toBe(7);
   });

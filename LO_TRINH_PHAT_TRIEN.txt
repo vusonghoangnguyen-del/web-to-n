@@ -260,15 +260,15 @@ Mục tiêu:
 Có frontend TypeScript, component hóa, SEO tốt và dễ mở rộng.
 
 Thứ tự chuyển trang:
-1. Layout, header và footer.
-2. Trang chủ.
-3. Danh sách bài toán.
-4. Chi tiết bài toán.
-5. Đăng nhập và đăng ký.
-6. Hồ sơ cá nhân.
-7. Trang soạn bài.
-8. Trang admin.
-9. Trang dự án LaTeX.
+1. Layout, header và footer. [HOÀN THÀNH]
+2. Trang chủ. [HOÀN THÀNH]
+3. Danh sách bài toán. [HOÀN THÀNH]
+4. Chi tiết bài toán. [HOÀN THÀNH]
+5. Đăng nhập và đăng ký. [HOÀN THÀNH]
+6. Hồ sơ cá nhân. [HOÀN THÀNH]
+7. Trang soạn bài. [HOÀN THÀNH]
+8. Trang admin. [HOÀN THÀNH]
+9. Trang dự án LaTeX. [HOÀN THÀNH]
 
 Ưu tiên server rendering cho:
 - Trang bài toán.
@@ -282,8 +282,8 @@ Thứ tự chuyển trang:
 - Chức năng không bị giảm so với phiên bản cũ.
 
 
-GIAI ĐOẠN 7 - MARKDOWN VÀ MATHJAX
-================================
+GIAI ĐOẠN 7 - MARKDOWN VÀ MATHJAX [HOÀN THÀNH]
+================================================
 
 Mục tiêu:
 Soạn và hiển thị bài toán giống cách Stack Exchange xử lý nội dung toán học.
@@ -317,7 +317,7 @@ Editor:
 - Người dùng xem trước được trước khi gửi.
 
 
-GIAI ĐOẠN 8 - DỰ ÁN LATEX TRONG MYSQL
+GIAI ĐOẠN 8 - DỰ ÁN LATEX TRONG MYSQL [HOÀN THÀNH PHIÊN BẢN ĐẦU]
 =====================================
 
 Mục tiêu:
@@ -348,14 +348,16 @@ Storage lưu:
 - PDF kết quả.
 - File ZIP xuất ra.
 
-API dự kiến:
+API đã có:
+- GET    /api/v1/latex/projects
 - POST   /api/v1/latex/projects
 - GET    /api/v1/latex/projects/:id
-- POST   /api/v1/latex/projects/:id/files
+- PATCH  /api/v1/latex/projects/:id
 - PUT    /api/v1/latex/projects/:id/files/:fileId
-- DELETE /api/v1/latex/projects/:id/files/:fileId
-- POST   /api/v1/latex/projects/:id/compile
-- GET    /api/v1/latex/projects/:id/builds
+- DELETE /api/v1/latex/projects/:id
+
+Biên dịch PDF đã bổ sung ở giai đoạn 9; API nhiều file sẽ làm ở bước mở rộng.
+Chi tiết triển khai: PHASE_8.md.
 
 Điều kiện hoàn thành:
 - Người dùng tạo, lưu và sửa project LaTeX.
@@ -364,6 +366,8 @@ API dự kiến:
 
 GIAI ĐOẠN 9 - WORKER BIÊN DỊCH LATEX
 ====================================
+
+Trạng thái: BẢN ĐẦU HOÀN THÀNH. Xem PHASE_9.md.
 
 Mục tiêu:
 Biên dịch LaTeX không làm API chậm hoặc mất an toàn.
@@ -398,7 +402,7 @@ Giới hạn an toàn ban đầu:
 - Tắt shell escape.
 - Giới hạn một CPU.
 - Giới hạn khoảng 512 MB RAM.
-- Timeout 20-30 giây.
+- Timeout 30 giây cho pdfLaTeX/XeLaTeX, 90 giây cho LuaLaTeX để tạo cache font.
 - Giới hạn kích thước project và PDF.
 - Hủy container sau mỗi job.
 

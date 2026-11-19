@@ -13,6 +13,8 @@ import { CommentsModule } from './comments/comments.module';
 import { SolutionsModule } from './solutions/solutions.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { CommunityModule } from './community/community.module';
+import { LatexModule } from './latex/latex.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { ModerationModule } from './moderation/moderation.module';
     SolutionsModule,
     EngagementModule,
     ModerationModule,
+    CommunityModule,
+    LatexModule,
   ],
   providers: [
     JsonLogger,

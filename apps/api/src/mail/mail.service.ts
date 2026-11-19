@@ -43,7 +43,7 @@ export class MailService {
   }
 
   async sendVerificationEmail(input: VerificationEmail): Promise<void> {
-    const verificationUrl = `${this.config.getOrThrow<string>('APP_WEB_URL')}/verify-email.html?token=${encodeURIComponent(input.token)}`;
+    const verificationUrl = `${this.config.getOrThrow<string>('APP_WEB_URL')}/xac-minh-email?token=${encodeURIComponent(input.token)}`;
     const subject = 'Xác minh tài khoản Tờ Toán';
     const text = `Chào ${input.name},\n\nMở liên kết sau để xác minh tài khoản Tờ Toán:\n${verificationUrl}\n\nLiên kết sẽ hết hạn. Nếu bạn không đăng ký, hãy bỏ qua email này.`;
     const html = `<!doctype html><html lang="vi"><meta charset="utf-8"><body><h1>Xác minh tài khoản Tờ Toán</h1><p>Chào ${escapeHtml(input.name)},</p><p>Nhấn vào liên kết dưới đây để hoàn tất đăng ký:</p><p><a href="${escapeHtml(verificationUrl)}">Xác minh email</a></p><p>Nếu bạn không đăng ký, hãy bỏ qua email này.</p></body></html>`;

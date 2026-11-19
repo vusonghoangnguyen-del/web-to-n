@@ -1,11 +1,13 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { configureApplication } from './app.setup';
 import { JsonLogger } from './common/logger/json.logger';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  app.useBodyParser('json', { limit: '5mb' });
   app.useLogger(app.get(JsonLogger));
   configureApplication(app);
   app.enableShutdownHooks();

@@ -1,6 +1,6 @@
 # Tờ Toán
 
-Website tạp chí toán học cộng đồng với frontend HTML/CSS/JavaScript, backend Node.js/Express và MySQL. Giao diện trang chủ lấy bài toán, lời giải và video từ API; dữ liệu người dùng nằm trong MySQL.
+Website tạp chí toán học cộng đồng với frontend Next.js, backend NestJS và MySQL. Giao diện trang chủ lấy bài toán, lời giải và video từ API; dữ liệu người dùng nằm trong MySQL.
 
 ## Yêu cầu
 
@@ -20,15 +20,19 @@ Khôi phục môi trường trên một máy mới bằng `npm install`.
 
 ## Kiến trúc monorepo
 
-Dự án dùng npm workspaces. Các lệnh ở thư mục gốc điều phối hai ứng dụng hiện tại:
+Dự án dùng npm workspaces. Hai ứng dụng đang chạy mặc định là:
+
+- `@to-toan/web`: frontend Next.js trong `apps/web`.
+- `@to-toan/api`: NestJS API TypeScript trong `apps/api`.
+
+Hai ứng dụng cũ vẫn được giữ để đối chiếu và chạy riêng khi cần:
 
 - `@to-toan/legacy-web`: frontend Vite trong `apps/legacy-web`.
 - `@to-toan/legacy-api`: Express API và MySQL trong `apps/legacy-api`.
-- `@to-toan/api`: NestJS API TypeScript mới trong `apps/api`, hiện chạy song song để chuyển đổi an toàn.
 
 NestJS dùng TypeORM với `synchronize: false`. Các Entity ánh xạ schema MySQL hiện tại; mọi thay đổi cấu trúc từ giai đoạn 3 phải đi qua migration được lưu trong Git.
 
-Tên `legacy` cho biết đây là ứng dụng ổn định đang được duy trì trong lúc NestJS và Next.js được xây ở các giai đoạn tiếp theo. Nó không có nghĩa là phần này đã ngừng hoạt động.
+Tên `legacy` chỉ các ứng dụng của giao diện và API trước đây.
 
 ## Thiết lập lần đầu
 
@@ -61,13 +65,18 @@ Lệnh yêu cầu mật khẩu `root` và tạo bảng `comments` mà không tha
 npm.cmd run dev
 ```
 
-- Website: `http://localhost:5173`
-- Express API cũ: `http://127.0.0.1:3000`
-- NestJS API mới: `http://127.0.0.1:3001`
+- Website: `http://127.0.0.1:5174`
+- NestJS API: `http://127.0.0.1:3001`
 - Health NestJS + MySQL: `http://127.0.0.1:3001/api/v1/health`
 - Swagger: `http://127.0.0.1:3001/docs`
 
-Nếu port 5173 đang bận, Vite sẽ báo port thực tế ở terminal. Giữ terminal chạy trong lúc dùng website.
+Trên Windows, bạn cũng có thể bấm đúp `KHOI_DONG_WEB.bat`. Giữ hai tiến trình Next.js và NestJS chạy trong lúc dùng website. Dùng cùng địa chỉ `127.0.0.1:5174` khi đăng nhập và khi mở liên kết xác minh email.
+
+## Dự án LaTeX (giai đoạn 8–9)
+
+Sau khi đăng nhập, mở `http://127.0.0.1:5174/latex` để tạo dự án, soạn `main.tex` và các tệp phụ, tải ảnh lên hoặc nhập ZIP từ TeXstudio. Chọn compiler và biên dịch toàn bộ dự án thành PDF; có thể tải ZIP nguồn về. Bản thảo tự lưu trong MySQL; PDF, trạng thái và log của mỗi lần biên dịch có thể xem trong trang. Nếu từng soạn trong phiên bản lưu ở trình duyệt, dùng nút **Đưa lên MySQL** tại trang này để nhập bản nháp cũ.
+
+Máy chưa áp dụng schema mới cần chạy `npm.cmd run migration:run` một lần và nhập mật khẩu MySQL root trong terminal. Biên dịch PDF cần Docker Desktop, Redis và worker; cách chạy và giới hạn ở [PHASE_9.md](PHASE_9.md). Phần lưu mã nguồn ở [PHASE_8.md](PHASE_8.md).
 
 ## Chức năng cơ bản
 
@@ -90,7 +99,7 @@ Sau khi tạo tài khoản trên website, cấp quyền quản trị bằng emai
 npm.cmd run admin:grant -- email-cua-ban@example.com
 ```
 
-Tải lại website để liên kết **Quản trị** xuất hiện cạnh tên tài khoản, hoặc mở trực tiếp `http://localhost:5173/admin.html`. Trang admin cho phép:
+Tải lại website để liên kết **Quản trị** xuất hiện cạnh tên tài khoản, hoặc mở trực tiếp `http://127.0.0.1:5174/admin`. Trang admin cho phép:
 
 - Xem thống kê thành viên, bài toán và lời giải.
 - Duyệt, từ chối, gỡ hoặc đưa bài về hàng chờ.
@@ -102,7 +111,8 @@ Mỗi bài đã xuất bản có trang chi tiết tại `problem.html?id=<id>`. 
 
 ## Các lệnh chính
 
-- `npm.cmd run dev`: chạy đồng thời Vite, Express cũ và NestJS mới với tự động tải lại.
+- `npm.cmd run dev`: chạy đồng thời Next.js và NestJS với tự động tải lại.
+- `npm.cmd run dev:legacy`: chạy Vite, Express cũ và NestJS để đối chiếu giao diện cũ.
 - `npm.cmd run dev:nest`: chỉ chạy NestJS API mới tại cổng 3001.
 - `npm.cmd run check`: kiểm tra cú pháp frontend, backend và script thiết lập.
 - `npm.cmd run build`: build frontend và NestJS API production.

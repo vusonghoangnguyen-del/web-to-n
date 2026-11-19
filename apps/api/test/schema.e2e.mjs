@@ -13,6 +13,9 @@ try {
     'comment_reports',
     'comments',
     'email_verification_tokens',
+    'latex_builds',
+    'latex_files',
+    'latex_projects',
     'newsletter_subscriptions',
     'notifications',
     'problem_categories',
@@ -101,6 +104,20 @@ try {
       (migration) =>
         String(migration.timestamp) === '1762605600000' &&
         migration.name === 'ModerationAudit1762605600000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1763596800000' &&
+        migration.name === 'LatexProjects1763596800000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1763683200000' &&
+        migration.name === 'LatexBuilds1763683200000',
     ),
   );
 

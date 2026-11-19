@@ -59,7 +59,7 @@ Migration `AccountStatusPolicy1762173600000`:
 - Sau khi đăng ký, người dùng được chuyển tới trang chờ xác minh riêng. Chỉ trang này có chức năng gửi lại email xác minh và giới hạn thao tác liên tiếp.
 - Sau đăng ký hiển thị yêu cầu kiểm tra email.
 - Có nút gửi lại email xác minh.
-- `verify-email.html` nhận token và gọi NestJS.
+- Route Next.js `/xac-minh-email` nhận token và gọi NestJS; route này thay cho `verify-email.html` từ giai đoạn 6.5.
 - Trang chính, chi tiết và admin khôi phục phiên qua `/api/v1/auth/me`.
 - Vite proxy `/api/v1` tới NestJS 3001 và `/api` còn lại tới Express 3000.
 
@@ -114,4 +114,4 @@ Các yêu cầu triển khai production như HTTPS, domain thật, SMTP producti
 
 ## Lưu ý production
 
-Cần cấu hình SMTP thật, HTTPS, domain chính xác trong `APP_WEB_URL`, SPF, DKIM và DMARC trước khi gửi email cho người dùng thật. Reverse proxy production phải chuyển `/api/v1` tới NestJS và các `/api` legacy còn lại tới Express.
+Cần cấu hình SMTP thật, HTTPS, domain chính xác trong `APP_WEB_URL`, SPF, DKIM và DMARC trước khi gửi email cho người dùng thật. Website Next.js chuyển các tuyến `/api/v1` tới NestJS.

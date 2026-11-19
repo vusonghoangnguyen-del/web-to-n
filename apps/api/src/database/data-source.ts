@@ -12,6 +12,9 @@ import { SolutionsModule1762432800000 } from './migrations/1762432800000-solutio
 import { EngagementModule1762519200000 } from './migrations/1762519200000-engagement-module';
 import { FollowNotifications1762522800000 } from './migrations/1762522800000-follow-notifications';
 import { ModerationAudit1762605600000 } from './migrations/1762605600000-moderation-audit';
+import { LatexProjects1763596800000 } from './migrations/1763596800000-latex-projects';
+import { LatexBuilds1763683200000 } from './migrations/1763683200000-latex-builds';
+import { LatexMultipleFiles1763769600000 } from './migrations/1763769600000-latex-multiple-files';
 
 loadEnvironment({ path: path.resolve(__dirname, '../../../../.env'), quiet: true });
 const environment = validateEnvironment(process.env);
@@ -35,6 +38,9 @@ export default new DataSource({
     EngagementModule1762519200000,
     FollowNotifications1762522800000,
     ModerationAudit1762605600000,
+    LatexProjects1763596800000,
+    LatexBuilds1763683200000,
+    LatexMultipleFiles1763769600000,
   ],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
