@@ -138,6 +138,8 @@ Muốn cấp quyền quản trị cho tài khoản đã đăng ký, chạy lện
 npm.cmd run admin:grant -- email-cua-bo@example.com
 ```
 
+Nếu trang đăng ký chưa tạo được tài khoản, có thể tạo admin trực tiếp trong PowerShell bằng `npm.cmd run admin:create`. Lệnh hỏi email, tên đăng nhập và mật khẩu; mật khẩu không hiện khi gõ. Chỉ chạy trên máy quản trị mà bạn kiểm soát, sau khi đã hoàn tất `db:setup` và `migration:run`.
+
 ## 7. Lỗi thường gặp
 
 | Hiện tượng | Cách kiểm tra và xử lý |

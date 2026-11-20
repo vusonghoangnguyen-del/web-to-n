@@ -11,8 +11,9 @@
     "db:migrate": "node scripts/migrate-database.js",
     "db:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-database.ps1",
     "admin:grant": "node scripts/grant-admin.js",
+    "admin:create": "node scripts/create-admin.js",
     "smoke": "node scripts/smoke-test.js",
-    "check": "node --check server/index.js && node --check server/config.js && node --check server/paths.js && node --check server/middleware/auth.js && node --check server/routes/admin.js && node --check server/routes/auth.js && node --check server/routes/community.js && node --check server/routes/problems.js && node --check scripts/setup-database.js && node --check scripts/seed-public-samples.js && node --check scripts/migrate-database.js && node --check scripts/grant-admin.js && node --check scripts/smoke-test.js"
+    "check": "node --check server/index.js && node --check server/config.js && node --check server/paths.js && node --check server/middleware/auth.js && node --check server/routes/admin.js && node --check server/routes/auth.js && node --check server/routes/community.js && node --check server/routes/problems.js && node --check scripts/setup-database.js && node --check scripts/seed-public-samples.js && node --check scripts/migrate-database.js && node --check scripts/grant-admin.js && node --check scripts/create-admin.js && node --check scripts/smoke-test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -27,6 +27,7 @@
     "db:migrate": "npm run db:migrate --workspace=@to-toan/legacy-api",
     "db:backup": "npm run db:backup --workspace=@to-toan/legacy-api",
     "admin:grant": "npm run admin:grant --workspace=@to-toan/legacy-api --",
+    "admin:create": "npm run admin:create --workspace=@to-toan/legacy-api",
     "smoke": "npm run smoke --workspace=@to-toan/legacy-api",
     "check": "npm run check --workspaces --if-present",
     "test": "npm run test --workspace=@to-toan/api",
