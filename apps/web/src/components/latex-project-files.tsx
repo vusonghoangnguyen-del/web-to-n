@@ -1,12 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, type Ref } from 'react';
 
 
 export type LatexFileSummary = { id: string; path: string; mimeType: string; sizeBytes: number; updatedAt: string };
 export type LatexProjectData = { id: string; title: string; compiler: 'pdflatex' | 'xelatex' | 'lualatex'; updatedAt: string; mainFile: { id: string; path: string; content: string }; files: LatexFileSummary[] };
 
-export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChange, onRefresh, registerFlush }: {
+export type FileCommands = { create: () => void; upload: () => void };
+
+export function LatexProjectFiles({ commandsRef, showFiles = false, onToggleFiles, project, mainSource, onMainEdit, beforeChange, onRefresh, registerFlush }: {
+  commandsRef?: Ref<FileCommands>;
+  showFiles?: boolean;
+  onToggleFiles?: () => void;
   project: LatexProjectData;
   mainSource: string;
   onMainEdit: (source: string) => void;
@@ -15,6 +20,7 @@ export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChang
   registerFlush: (flush: (() => Promise<boolean>) | null) => void;
 }) {
   const fileDialog = useRef<HTMLDialogElement>(null);
+  useImperativeHandle(commandsRef,()=>({create:()=>{setFileAction('create');fileDialog.current?.showModal();},upload:()=>{setFileAction('upload');fileDialog.current?.showModal();}}));
   const [fileAction,setFileAction] = useState<'create' | 'upload'>('create');
   const [selectedId, setSelectedId] = useState(project.mainFile.id);
   const [source, setSource] = useState('');
@@ -127,9 +133,9 @@ export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChang
     finally { setBusy(false); }
   }
 
-  return <div className="latex-project-files">
-    <aside className="latex-files-sidebar"><header><strong>Tệp dự án</strong><button type="button" onClick={() => fileDialog.current?.showModal()}>+ Thêm</button></header><nav aria-label="Tệp dự án">{project.files.map((file) => <button title={file.path} key={file.id} type="button" className={file.id===selected?.id?'active':''} aria-pressed={file.id===selected?.id} onClick={() => void select(file)} disabled={busy}><span>{file.path}</span><small>{formatBytes(file.sizeBytes)}</small></button>)}</nav><button className="workbench-add-mobile" type="button" onClick={() => fileDialog.current?.showModal()}>Thêm tệp</button></aside>
-    <div className="latex-file-editor"><div className="latex-filebar"><details className="workbench-mobile-files"><summary>Tệp ▾</summary><nav>{project.files.map((file)=><button type="button" key={file.id} onClick={(event)=>{void select(file);const menu=event.currentTarget.closest("details");if(menu)menu.open=false;}}>{file.path}</button>)}<button type="button" onClick={()=>fileDialog.current?.showModal()}>+ Thêm tệp</button></nav></details><strong>{selected?.path || 'main.tex'}</strong><span>{isMain ? 'Tự lưu' : dirty ? 'Đang lưu…' : 'Đã lưu'}</span>{!isMain && <><a href={`${base}/files/${selected.id}/raw`}>Tải tệp ↓</a><button type="button" className="danger-text" disabled={busy} onClick={() => void remove()}>{confirmDelete ? 'Xác nhận xóa' : 'Xóa tệp'}</button></>}</div>
+  return <div className={"latex-project-files"+(showFiles?" show-files":"")}>
+    <aside className="latex-files-sidebar"><header><strong>Tệp dự án</strong><button type="button" onClick={onToggleFiles} aria-label="Đóng danh sách tệp">×</button><button type="button" onClick={() => fileDialog.current?.showModal()}>+ Thêm</button></header><nav aria-label="Tệp dự án">{project.files.map((file) => <button title={file.path} key={file.id} type="button" className={file.id===selected?.id?'active':''} aria-pressed={file.id===selected?.id} onClick={async () => {await select(file);if(window.matchMedia("(max-width:760px)").matches)onToggleFiles?.();}} disabled={busy}><span>{file.path}</span><small>{formatBytes(file.sizeBytes)}</small></button>)}</nav><button className="workbench-add-mobile" type="button" onClick={() => fileDialog.current?.showModal()}>Thêm tệp</button></aside>
+    <div className="latex-file-editor"><div className="latex-filebar"><button className="workbench-files-toggle" type="button" aria-label="Mở đóng danh sách tệp" aria-pressed={showFiles} onClick={onToggleFiles}>☰</button><details className="workbench-mobile-files"><summary>Tệp ▾</summary><nav>{project.files.map((file)=><button type="button" key={file.id} onClick={(event)=>{void select(file);const menu=event.currentTarget.closest("details");if(menu)menu.open=false;}}>{file.path}</button>)}<button type="button" onClick={()=>fileDialog.current?.showModal()}>+ Thêm tệp</button></nav></details><strong>{selected?.path || 'main.tex'}</strong><span>{isMain ? 'Tự lưu' : dirty ? 'Đang lưu…' : 'Đã lưu'}</span>{!isMain && <><a href={`${base}/files/${selected.id}/raw`}>Tải tệp ↓</a><button type="button" className="danger-text" disabled={busy} onClick={() => void remove()}>{confirmDelete ? 'Xác nhận xóa' : 'Xóa tệp'}</button></>}</div>
       {error && <p className="latex-error" role="alert">{error}</p>}
       {isText ? <div className="latex-code-shell"><pre ref={lineNumbers} className="latex-line-numbers" aria-hidden="true">{Array.from({ length: Math.max(1, (isMain ? mainSource : source).split('\n').length) }, (_, index) => index + 1).join('\n')}</pre><textarea className="latex-code" wrap="off" spellCheck={false} value={isMain ? mainSource : source} onScroll={(event) => { if (lineNumbers.current) lineNumbers.current.scrollTop = event.currentTarget.scrollTop; }} onChange={(event) => isMain ? onMainEdit(event.target.value) : (latest.current = { selectedId, source: event.target.value, dirty: true }, setSource(event.target.value), setDirty(true))} disabled={busy}/></div> : selected?.mimeType.startsWith('image/') ? <div className="latex-asset-preview"><img src={`${base}/files/${selected.id}/raw`} alt={selected.path}/></div> : <div className="latex-asset-preview"><p>Tệp {selected?.path} được dùng khi biên dịch.</p><a href={`${base}/files/${selected?.id}/raw`}>Tải tệp xuống</a></div>}
     </div>
