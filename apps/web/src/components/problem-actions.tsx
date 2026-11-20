@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { UiIcon } from './ui-icon';
 
 type Mine = { bookmarked: boolean; followed: boolean; problemLiked: boolean };
 
@@ -55,7 +56,7 @@ export function ProblemActions({ problemId, initialLikes, initialFollowers }: { 
       }));
       if (kind === 'like') setLikes(Number(result.reactionCount ?? likes + (active ? -1 : 1)));
       if (kind === 'follow') setFollowers(Number(result.followerCount ?? followers + (active ? -1 : 1)));
-      setMessage(kind === 'bookmark' ? (!active ? 'Đã lưu bài toán.' : 'Đã bỏ lưu bài toán.') : 'Đã cập nhật.');
+      setMessage(kind === 'bookmark' ? (!active ? 'Đã lưu bài viết.' : 'Đã bỏ lưu bài viết.') : 'Đã cập nhật.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Không thể thực hiện thao tác.');
     } finally {
@@ -64,10 +65,10 @@ export function ProblemActions({ problemId, initialLikes, initialFollowers }: { 
   }
 
   return (
-    <div className="detail-actions" aria-label="Tương tác với bài toán">
-      <button type="button" aria-pressed={mine.bookmarked} disabled={busy !== null} onClick={() => toggle('bookmark')}>{mine.bookmarked ? '★ Đã lưu' : '☆ Lưu bài'}</button>
-      <button type="button" aria-pressed={mine.problemLiked} disabled={busy !== null} onClick={() => toggle('like')}>{mine.problemLiked ? '♥ Đã thích' : '♡ Thích'} · {likes}</button>
-      <button type="button" aria-pressed={mine.followed} disabled={busy !== null} onClick={() => toggle('follow')}>{mine.followed ? '✓ Đang theo dõi' : '+ Theo dõi'} · {followers}</button>
+    <div className="detail-actions" aria-label="Tương tác với bài viết">
+      <button type="button" aria-pressed={mine.bookmarked} disabled={busy !== null} onClick={() => toggle('bookmark')}><UiIcon name="bookmark" />{mine.bookmarked ? 'Đã lưu' : 'Lưu bài'}</button>
+      <button type="button" aria-pressed={mine.problemLiked} disabled={busy !== null} onClick={() => toggle('like')}><UiIcon name="heart" />{mine.problemLiked ? 'Đã thích' : 'Thích'} ({likes})</button>
+      <button type="button" aria-pressed={mine.followed} disabled={busy !== null} onClick={() => toggle('follow')}><UiIcon name="plus" />{mine.followed ? 'Đang theo dõi' : 'Theo dõi'} ({followers})</button>
       <span role="status">{message}</span>
     </div>
   );

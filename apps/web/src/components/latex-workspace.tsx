@@ -1,10 +1,13 @@
 'use client';
-
+import { WorkspaceTabs } from './workspace-tabs';
 import Link from 'next/link';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { LatexBuildPanel } from './latex-build-panel';
+import { Suspense } from 'react';
+import { LatexBuildPanel, type Build, type BuildCommands } from './latex-build-panel';
 import { LatexProjectFiles, LatexProjectData } from './latex-project-files';
+import { ProblemEditor } from './problem-editor';
 
 type Compiler = 'pdflatex' | 'xelatex' | 'lualatex';
 type User = { id: string; name: string };
@@ -39,6 +42,11 @@ export function LatexWorkspace() {
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState('');
   const [deleteId, setDeleteId] = useState('');
+  const settingsDialog = useRef<HTMLDialogElement>(null);
+  const buildCommands = useRef<BuildCommands>(null);
+  const [buildBusy, setBuildBusy] = useState(false);
+  const [selectedBuild, setSelectedBuild] = useState<Build | null>(null);
+  const [submission, setSubmission] = useState<{ projectId: string; buildId: string } | null>(null);
   const current = useRef<Project | null>(null);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const saving = useRef(new Map<string, Promise<void>>());
@@ -81,7 +89,7 @@ export function LatexWorkspace() {
     try {
       if (!await flushAll()) return;
       const result = await api<{ project: Project }>(`${endpoint}/${id}`);
-      current.current = result.project; setActive(result.project); setDirty(timers.current.has(id) || saving.current.has(id));
+      current.current = result.project; setActive(result.project); setDirty(timers.current.has(id) || saving.current.has(id)); setSubmission(null);
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
   }
@@ -224,20 +232,41 @@ export function LatexWorkspace() {
     catch { setError('Không đọc được tệp .tex.'); }
   }
 
-  if (!ready) return <section className="latex-loading"><span/><p>Đang mở xưởng LaTeX…</p></section>;
-  return <div className="latex-page page-shell">
-    <header className="latex-hero"><div><span className="eyebrow">Xưởng bản thảo · MySQL</span><h1>Dự án <em>LaTeX</em></h1><p>Soạn bài báo nhiều tệp, nhập dự án TeXstudio từ ZIP và biên dịch PDF bằng TeX Live.</p></div><div className="latex-hero-actions"><label className="outline-button">Nhập ZIP<input type="file" accept=".zip,application/zip" onChange={(event) => { void importZip(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="ink-button" type="button" disabled={busy || !user} onClick={() => void create()}>＋ Dự án mới</button></div></header>
-    {error && <p className="latex-error" role="alert">{error}</p>}
-    {drafts.length > 0 && <div className="latex-import"><span>Còn {drafts.length} bản nháp trên trình duyệt này.</span><button className="outline-button" type="button" disabled={busy} onClick={() => void importLocal()}>Đưa lên MySQL</button></div>}
-    <div className="latex-layout">
-      <aside className="latex-sidebar"><header><strong>Dự án của {user?.name}</strong><small>{projects.length} dự án trong MySQL</small></header>{projects.length ? <nav>{projects.map((item) => <button type="button" className={item.id === active?.id ? 'active' : ''} key={item.id} onClick={() => void select(item.id)}><strong>{item.title}</strong><small>{item.compiler} · {relative(item.updatedAt)}</small></button>)}</nav> : <div className="latex-empty"><span>∅</span><p>Chưa có dự án. Hãy tạo bản thảo đầu tiên.</p></div>}</aside>
-      <section className="latex-editor-panel">{active ? <>
-        <header className="latex-toolbar"><label>Tên dự án<input value={active.title} maxLength={120} onChange={(event) => edit({ title: event.target.value })}/></label><label>Compiler<select value={active.compiler} onChange={(event) => edit({ compiler: event.target.value as Compiler })}><option value="pdflatex">pdfLaTeX</option><option value="xelatex">XeLaTeX</option><option value="lualatex">LuaLaTeX</option></select></label><div><span className={dirty ? '' : 'saved'}>{dirty ? 'Đang lưu…' : '✓ Đã lưu vào MySQL'}</span><label className="outline-button latex-input-button">Nhập main.tex<input type="file" accept=".tex,text/plain" onChange={(event) => { void importTex(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="outline-button" type="button" onClick={download}>Tải .tex</button><button className="outline-button" type="button" onClick={() => void downloadZip()}>Tải ZIP</button><button className="plain-button danger-text" type="button" disabled={busy} onClick={() => void remove()}>{deleteId === active.id ? 'Xác nhận xóa' : 'Xóa'}</button></div></header>
-        <LatexProjectFiles key={active.id} project={active} mainSource={active.mainFile.content} onMainEdit={(source) => edit({ source })} beforeChange={flushCurrent} onRefresh={refresh} registerFlush={(flush) => { auxFlush.current = flush; }}/>
-        <LatexBuildPanel key={active.id} projectId={active.id} flush={flushAll}/>
-        <footer><p><strong>Lưu ý:</strong> Biên dịch từ <code>main.tex</code>; có thể dùng <code>\input</code>, ảnh và tài liệu tham khảo từ các tệp của dự án.</p><Link href="/soan-bai">Chuyển sang soạn bài toán →</Link></footer>
-      </> : <div className="latex-welcome"><span>TeX</span><h2>Bắt đầu một bản thảo mới.</h2><p>Tạo dự án để mở tệp <code>main.tex</code>.</p><button className="ink-button" type="button" disabled={busy || !user} onClick={() => void create()}>Tạo dự án đầu tiên</button></div>}</section>
-    </div>
+  async function openSubmission() {
+    if (!active) return;
+    setError('');
+    if (!await flushAll()) { setError('Chưa lưu được bản thảo. Hãy thử lại trước khi gửi bài.'); return; }
+    if (selectedBuild) {
+      if (selectedBuild.status !== 'success' || !selectedBuild.pdfUrl) { setError('Bản đang xem chưa có PDF thành công.'); return; }
+      setSubmission({ projectId: active.id, buildId: selectedBuild.id }); return;
+    }
+    try {
+      const { builds } = await api<{ builds: { id: string; status: string; pdfUrl: string | null }[] }>(`${endpoint}/${active.id}/builds`);
+      const latest = builds.find((build) => build.status === 'success' && build.pdfUrl);
+      if (!latest) { setError('Hãy biên dịch PDF thành công trước khi gửi bài.'); return; }
+      setSubmission({ projectId: active.id, buildId: latest.id });
+    } catch (cause) { setError(message(cause)); }
+  }
+
+  if (!ready) return <section className="latex-loading"><Link href="/">← Về trang chủ</Link><p>Đang mở không gian LaTeX…</p></section>;
+  return <div className="latex-page latex-ide">
+    <header className="workbench-header">
+      <div className="workbench-identity"><Link className="workbench-home" href="/" onClick={async (event) => { event.preventDefault(); if (await flushAll()) router.push('/'); }}>← Về trang chủ</Link><Link className="workbench-wordmark" href="/" onClick={async (event) => { event.preventDefault(); if (await flushAll()) router.push('/'); }}>TỜ TOÁN</Link></div>
+      <div className="workbench-context"><label className="visually-hidden" htmlFor="active-latex-project">Chọn dự án</label><select id="active-latex-project" value={active?.id ?? ''} onChange={(event) => {setSelectedBuild(null);void select(event.target.value);}} disabled={!projects.length}>{!projects.length && <option value="">Chưa có dự án</option>}{projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}</select><span role="status">{active ? dirty ? 'Đang lưu…' : 'Đã lưu' : 'Soạn thảo LaTeX'}</span></div>
+      <div className="workbench-commands"><details className="workbench-menu" onKeyDown={(event) => {if(event.key === 'Escape'){event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}><summary>Dự án ▾{drafts.length>0 && ' ('+drafts.length+')'}</summary><div className="workbench-menu-items">
+        <button type="button" disabled={busy || !user} onClick={() => void create()}>Dự án mới</button>
+        <label>Nhập ZIP<input type="file" accept=".zip,application/zip" onChange={(event) => {void importZip(event.target.files?.[0]);event.target.value='';}} /></label>
+        {active && <><button type="button" onClick={() => settingsDialog.current?.showModal()}>Cài đặt dự án</button><label>Nhập main.tex<input type="file" accept=".tex,text/plain" onChange={(event) => {void importTex(event.target.files?.[0]);event.target.value='';}} /></label><button type="button" onClick={download}>Tải .tex</button><button type="button" onClick={() => void downloadZip()}>Tải ZIP</button><button className="danger-text" type="button" disabled={busy} onClick={() => void remove()}>{deleteId === active.id ? 'Xác nhận xóa dự án' : 'Xóa dự án'}</button></>}
+        {drafts.length>0 && <button type="button" disabled={busy} onClick={() => void importLocal()}>Nhập bản nháp ({drafts.length})</button>}
+      </div></details>
+      <button className="ink-button workbench-compile" type="button" disabled={!active || buildBusy || selectedBuild?.status==='queued' || selectedBuild?.status==='compiling'} onClick={() => void buildCommands.current?.compile()}>{buildBusy ? 'Đang gửi…' : selectedBuild?.status==='queued' || selectedBuild?.status==='compiling' ? 'Đang biên dịch…' : 'Biên dịch PDF'}</button>
+      <button className="outline-button workbench-submit" type="button" disabled={!active || !selectedBuild?.pdfUrl || selectedBuild.status!=='success'} onClick={() => void openSubmission()}>Gửi PDF duyệt</button>
+      </div>
+    </header>
+    {error && <p className="latex-error workbench-error" role="alert">{error}</p>}
+    {active ? <WorkspaceTabs key={active.id} className="latex-workbench-tabs" tabs={[{id:'ma-nguon',label:'Mã nguồn'},{id:'ban-bien-dich',label:'Bản PDF'}]}><div id="ma-nguon"><LatexProjectFiles key={active.id} project={active} mainSource={active.mainFile.content} onMainEdit={(source) => edit({source})} beforeChange={flushCurrent} onRefresh={refresh} registerFlush={(flush) => {auxFlush.current=flush;}} /></div><div id="ban-bien-dich"><LatexBuildPanel key={active.id} projectId={active.id} flush={flushAll} controlsRef={buildCommands} onBusyChange={setBuildBusy} onSelectionChange={setSelectedBuild} onSubmit={(buildId) => setSubmission({projectId:active.id,buildId})} /></div></WorkspaceTabs> : <div className="workbench-empty"><h1>Soạn thảo LaTeX</h1><p>Chưa có dự án. Tạo dự án hoặc nhập tệp ZIP để bắt đầu.</p><button className="ink-button" type="button" disabled={busy || !user} onClick={() => void create()}>Dự án mới</button></div>}
+    <dialog ref={settingsDialog} className="workbench-dialog"><header><h2>Cài đặt dự án</h2><button type="button" onClick={() => settingsDialog.current?.close()} aria-label="Đóng cài đặt">✕</button></header>{active && <><label>Tên dự án<input value={active.title} maxLength={120} onChange={(event) => edit({title:event.target.value})} /></label><label>Trình biên dịch<select value={active.compiler} onChange={(event) => edit({compiler:event.target.value as Compiler})}><option value="pdflatex">pdfLaTeX</option><option value="xelatex">XeLaTeX</option><option value="lualatex">LuaLaTeX</option></select></label><p>{dirty ? 'Đang lưu…' : 'Đã lưu'}</p></>}<button className="ink-button" type="button" onClick={() => settingsDialog.current?.close()}>Xong</button></dialog>
+    {submission && active?.id === submission.projectId && <div className="latex-submission-overlay"><section className="latex-submission-sheet" role="dialog" aria-modal="true" aria-label="Gửi bài tới tòa soạn"><button className="latex-submission-close" type="button" onClick={() => setSubmission(null)}>← Quay lại bản thảo</button><Suspense fallback={<p>Đang mở biểu mẫu gửi bài…</p>}><ProblemEditor key={submission.projectId+':'+submission.buildId} initialProjectId={submission.projectId} initialBuildId={submission.buildId} initialTitle={active.title}/></Suspense></section></div>}
   </div>;
 }
 

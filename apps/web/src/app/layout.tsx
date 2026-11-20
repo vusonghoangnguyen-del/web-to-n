@@ -4,18 +4,19 @@ import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import './globals.css';
+import './catalog-theme.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:5174'),
   title: { default: 'Tờ Toán — Cộng đồng yêu toán', template: '%s — Tờ Toán' },
-  description: 'Đọc, gửi lời giải và cùng thảo luận những bài toán hay.',
+  description: 'Đọc, đăng và cùng thảo luận những bài viết toán học.',
   applicationName: 'Tờ Toán',
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
     siteName: 'Tờ Toán',
     title: 'Tờ Toán — Cộng đồng yêu toán',
-    description: 'Mỗi bài toán, một cách nhìn mới.',
+    description: 'Mỗi bài viết, một cách nhìn mới.',
   },
 };
 
@@ -47,7 +48,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="vi">
       <body>
         <a className="skip-link" href="#noi-dung">Đi tới nội dung</a>
-        <div className="paper-noise" aria-hidden="true" />
         <SiteHeader initialUser={initialUser} />
         <main id="noi-dung">{children}</main>
         <SiteFooter />

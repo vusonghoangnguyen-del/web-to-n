@@ -9,6 +9,7 @@ import {
   IsString,
   Length,
   MaxLength,
+  Matches,
 } from 'class-validator';
 import { ProblemDifficulty, ProblemStatus } from '../../database/entities/problem.entity';
 
@@ -22,6 +23,12 @@ export class CreateProblemDto {
   @IsString()
   @Length(10, 30_000)
   body!: string;
+
+  @ApiPropertyOptional({ description: 'ID bản biên dịch PDF thành công thuộc dự án LaTeX của người đăng' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[1-9]\d{0,19}$/)
+  latexBuildId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { MathContent } from './math-content';
+import { WorkspaceTabs } from './workspace-tabs';
+import { RecordBrowser } from './record-browser';
 
 type SessionUser = { id: string; name: string; username: string; role: string };
 type Stats = { pendingProblems: number; publishedProblems: number; users: number; pendingSolutions: number; pendingReports: number };
@@ -68,7 +70,7 @@ export function AdminDashboard() {
   }
 
   function reviewProblem(problem: Problem, status: string, note: string) {
-    return mutate(`problem-${problem.id}`, `/api/v1/moderation/problems/${problem.id}`, { status, reviewNote: note.trim() }, 'Đã cập nhật trạng thái bài toán.');
+    return mutate(`problem-${problem.id}`, `/api/v1/moderation/problems/${problem.id}`, { status, reviewNote: note.trim() }, 'Đã cập nhật trạng thái bài viết.');
   }
 
   function reviewSolution(solution: Solution, status: string, note: string) {
@@ -79,24 +81,24 @@ export function AdminDashboard() {
   if (!user || !['moderator', 'admin'].includes(user.role)) return <section className="admin-denied page-shell"><span>!</span><h1>Không có quyền truy cập.</h1><p>{message || 'Chỉ điều hành viên và admin được mở trang này.'}</p><Link className="ink-button" href="/">Về trang chính</Link></section>;
 
   return <div className="admin-page">
-    <section className="admin-hero page-shell"><div><span className="eyebrow">Bàn biên tập · {roleLabel(user.role)}</span><h1>Chào buổi làm việc,<br/><em>{user.name.split(' ').at(-1)}</em>.</h1></div><p>Kiểm duyệt minh bạch, giữ chất lượng cho từng bài viết và cuộc thảo luận.</p></section>
-    <nav className="admin-jump page-shell" aria-label="Mục quản trị"><a href="#duyet-bai">Bài toán</a><a href="#duyet-loi-giai">Lời giải</a><a href="#thao-luan">Thảo luận</a><a href="#bao-cao">Báo cáo</a><a href="#nhat-ky">Nhật ký</a></nav>
+    <section className="admin-hero page-shell"><div><h1>Bàn biên tập</h1><p>{user.name} · {roleLabel(user.role)}</p></div></section>
+
     <section className="admin-stats page-shell" aria-label="Thống kê"><Stat number={stats.pendingProblems} label="Bài chờ duyệt"/><Stat number={stats.pendingSolutions} label="Lời giải chờ duyệt"/><Stat number={stats.pendingReports} label="Báo cáo mới"/><Stat number={stats.users} label="Tài khoản"/><Stat number={stats.publishedProblems} label="Bài đã xuất bản"/></section>
     {message && <p className="admin-message page-shell" role="status">{message}</p>}
 
-    <AdminSection id="duyet-bai" number="01" title="Duyệt bài toán" controls={<select value={problemStatus} onChange={(event) => setProblemStatus(event.target.value)}><option value="pending">Chờ duyệt</option><option value="published">Đã xuất bản</option><option value="rejected">Đã từ chối</option><option value="all">Tất cả</option></select>}>
-      {problems.length ? problems.map((problem, index) => <article className="moderation-card" key={problem.id}>
+    <WorkspaceTabs className="admin-workspace page-shell" syncHash tabs={[{id:"duyet-bai",label:"Bài viết ("+stats.pendingProblems+")"},{id:"duyet-loi-giai",label:"Lời giải ("+stats.pendingSolutions+")"},{id:"thao-luan",label:"Thảo luận"},{id:"bao-cao",label:"Báo cáo ("+stats.pendingReports+")"},{id:"nhat-ky",label:"Nhật ký"}]}><AdminSection id="duyet-bai" number="01" title="Duyệt bài viết" controls={<select value={problemStatus} onChange={(event) => setProblemStatus(event.target.value)}><option value="pending">Chờ duyệt</option><option value="published">Đã xuất bản</option><option value="rejected">Đã từ chối</option><option value="all">Tất cả</option></select>}>
+      {problems.length ? <RecordBrowser items={problems.map((problem) => ({id:problem.id,title:problem.title,subtitle:problem.author.name + " · " + statusLabel(problem.status)}))}>{problems.map((problem, index) => <article className="moderation-card" key={problem.id}>
         <span className="moderation-number">{String(index + 1).padStart(2, '0')}</span>
         <div className="moderation-copy"><div className="moderation-meta"><Status value={problem.status}/><span>{problem.categories || 'Chưa phân loại'}</span><span>{problem.difficulty}</span><time>{date(problem.createdAt)}</time></div><h3>{problem.title}</h3><MathContent content={problem.content}/><small>Gửi bởi <strong>{problem.author.name}</strong> · {problem.author.email}</small></div>
         <div className="moderation-actions"><ReviewActions kind="problem" currentStatus={problem.status} busy={busy === `problem-${problem.id}`} onReview={(status, note) => reviewProblem(problem, status, note)} /></div>
-      </article>) : <Empty text="Không có bài toán trong nhóm trạng thái này."/>}
+      </article>)}</RecordBrowser> : <Empty text="Không có bài viết trong nhóm trạng thái này."/>}
     </AdminSection>
 
     <AdminSection id="duyet-loi-giai" number="02" title="Duyệt lời giải" controls={<select value={solutionStatus} onChange={(event) => setSolutionStatus(event.target.value)}><option value="pending">Chờ duyệt</option><option value="verified">Đã kiểm chứng</option><option value="rejected">Đã từ chối</option><option value="all">Tất cả</option></select>}>
-      {solutions.length ? solutions.map((solution) => <article className="solution-review-card" key={solution.id}>
+      {solutions.length ? <RecordBrowser items={solutions.map((solution) => ({id:solution.id,title:solution.problem.title,subtitle:solution.author.name + " · " + statusLabel(solution.status)}))}>{solutions.map((solution) => <article className="solution-review-card" key={solution.id}>
         <div><div className="moderation-meta"><Status value={solution.status}/>{solution.isFeatured && <span>★ Nổi bật</span>}<time>{date(solution.createdAt)}</time></div><h3><Link href={`/bai-toan/${encodeURIComponent(solution.problem.slug || solution.problem.id)}`}>{solution.problem.title}</Link></h3><small>Lời giải của <strong>{solution.author.name}</strong>{solution.author.email ? ` · ${solution.author.email}` : ''}</small><MathContent content={solution.content}/>{solution.reviewNote && <em>Ghi chú: {solution.reviewNote}</em>}</div>
         <div className="moderation-actions"><ReviewActions kind="solution" currentStatus={solution.status} busy={busy === `solution-${solution.id}`} onReview={(status, note) => reviewSolution(solution, status, note)} />{solution.status === 'verified' && <button disabled={busy === `feature-${solution.id}`} className="outline-button" onClick={() => void mutate(`feature-${solution.id}`, `/api/v1/solutions/${solution.id}/featured`, { featured: !solution.isFeatured }, solution.isFeatured ? 'Đã bỏ đánh dấu nổi bật.' : 'Đã đánh dấu lời giải nổi bật.')}>{solution.isFeatured ? 'Bỏ nổi bật' : 'Đánh dấu nổi bật'}</button>}</div>
-      </article>) : <Empty text="Không có lời giải trong nhóm trạng thái này."/>}
+      </article>)}</RecordBrowser> : <Empty text="Không có lời giải trong nhóm trạng thái này."/>}
     </AdminSection>
 
     <AdminSection id="thao-luan" number="03" title="Quản lý thảo luận">
@@ -110,6 +112,7 @@ export function AdminDashboard() {
     <AdminSection id="nhat-ky" number="05" title="Nhật ký kiểm duyệt">
       {audits.length ? audits.map((audit) => <article className="admin-row audit-row" key={audit.id}><div><strong>{actionLabel(audit.action)}</strong><p>{audit.targetType} #{audit.targetId}</p></div><small>{audit.actor?.name || 'Tài khoản đã xóa'} · {date(audit.createdAt)}</small></article>) : <Empty text="Chưa có hành động kiểm duyệt nào."/>}
     </AdminSection>
+    </WorkspaceTabs>
   </div>;
 }
 
@@ -162,4 +165,4 @@ function Empty({ text }: { text: string }) { return <p className="admin-empty">{
 function date(value: string) { return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
 function roleLabel(value: string) { return value === 'admin' ? 'Admin' : 'Điều hành viên'; }
 function statusLabel(value: string) { return ({ pending: 'Chờ duyệt', published: 'Đã xuất bản', rejected: 'Đã từ chối', verified: 'Đã kiểm chứng', hidden: 'Đã ẩn', visible: 'Hiển thị', reviewed: 'Đã xử lý', dismissed: 'Bỏ qua' } as Record<string, string>)[value] || value; }
-function actionLabel(value: string) { return ({ 'problem.review': 'Kiểm duyệt bài toán', 'solution.review': 'Kiểm duyệt lời giải', 'solution.feature': 'Đánh dấu lời giải nổi bật', 'comment.hide': 'Ẩn bình luận', 'comment.restore': 'Hiện lại bình luận', 'comment-report.resolve': 'Xử lý báo cáo' } as Record<string, string>)[value] || value; }
+function actionLabel(value: string) { return ({ 'problem.review': 'Kiểm duyệt bài viết', 'solution.review': 'Kiểm duyệt lời giải', 'solution.feature': 'Đánh dấu lời giải nổi bật', 'comment.hide': 'Ẩn bình luận', 'comment.restore': 'Hiện lại bình luận', 'comment-report.resolve': 'Xử lý báo cáo' } as Record<string, string>)[value] || value; }

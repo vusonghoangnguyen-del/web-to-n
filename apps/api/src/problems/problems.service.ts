@@ -9,6 +9,8 @@ import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { PublicUser } from '../auth/auth.types';
 import { CategoryEntity } from '../database/entities/category.entity';
 import { CommentEntity, CommentStatus } from '../database/entities/comment.entity';
+import { LatexBuildEntity, LatexBuildStatus } from '../database/entities/latex-build.entity';
+import { compiledPdfPath, streamCompiledPdf } from '../latex/latex-pdf';
 import { ProblemCategoryEntity } from '../database/entities/problem-category.entity';
 import { ProblemRevisionEntity } from '../database/entities/problem-revision.entity';
 import { ProblemEntity, ProblemStatus } from '../database/entities/problem.entity';
@@ -32,6 +34,8 @@ type ProblemView = {
   author: { id: string; username: string; name: string };
   categories: Array<{ name: string; slug: string }>;
   commentCount: number;
+  latexBuildId: string | null;
+  latexPdfUrl: string | null;
 };
 
 @Injectable()
@@ -44,6 +48,8 @@ export class ProblemsService {
     private readonly comments: Repository<CommentEntity>,
     @InjectRepository(ProblemRevisionEntity)
     private readonly revisions: Repository<ProblemRevisionEntity>,
+    @InjectRepository(LatexBuildEntity)
+    private readonly latexBuilds: Repository<LatexBuildEntity>,
   ) {}
 
   async list(query: ListProblemsDto): Promise<{
@@ -110,15 +116,25 @@ export class ProblemsService {
     return { problem: this.toView(problem, counts.get(problem.id) ?? 0) };
   }
 
+  async pdf(identifier: string) {
+    const problem = await this.findByIdentifier(identifier, true);
+    if (!problem.latexBuildId) throw new NotFoundException('Bài toán này chưa có PDF.');
+    const build = await this.latexBuilds.findOneBy({ id: problem.latexBuildId });
+    if (!build) throw new NotFoundException('Không tìm thấy bản PDF của bài toán.');
+    return streamCompiledPdf(build);
+  }
+
   async create(user: PublicUser, dto: CreateProblemDto): Promise<{ problem: ProblemView }> {
     return this.dataSource.transaction(async (manager) => {
       const categories = await this.resolveCategories(manager, dto.categorySlugs);
+      if (dto.latexBuildId) await this.validateLatexBuild(manager, dto.latexBuildId, user.id);
       const repository = manager.getRepository(ProblemEntity);
       const problem = repository.create({
         authorId: user.id,
         title: dto.title.trim(),
         slug: await this.uniqueSlug(manager, dto.title),
         content: dto.body.trim(),
+        latexBuildId: dto.latexBuildId ?? null,
         source: dto.source?.trim() || null,
         difficulty: dto.difficulty,
         status: dto.status,
@@ -160,6 +176,10 @@ export class ProblemsService {
         problem.slug = await this.uniqueSlug(manager, problem.title, problem.id);
       }
       if (dto.body !== undefined) problem.content = dto.body.trim();
+      if (dto.latexBuildId !== undefined) {
+        if (dto.latexBuildId) await this.validateLatexBuild(manager, dto.latexBuildId, problem.authorId);
+        problem.latexBuildId = dto.latexBuildId;
+      }
       if (dto.source !== undefined) problem.source = dto.source.trim() || null;
       if (dto.difficulty !== undefined) problem.difficulty = dto.difficulty;
       if (dto.status !== undefined) {
@@ -194,6 +214,7 @@ export class ProblemsService {
         throw new ForbiddenException('Bạn không có quyền xóa bài toán này.');
       }
       problem.deletedAt = new Date();
+      problem.latexBuildId = null;
       await manager.getRepository(ProblemEntity).save(problem);
       await this.saveRevision(
         manager,
@@ -215,12 +236,17 @@ export class ProblemsService {
       relations: { editor: true },
       order: { version: 'DESC' },
     });
+    const buildIds = [...new Set(revisions.map((revision) => revision.latexBuildId).filter((id): id is string => Boolean(id)))];
+    const builds = buildIds.length ? await this.latexBuilds.findBy({ id: In(buildIds) }) : [];
+    const projectIds = new Map(builds.map((build) => [build.id, build.projectId]));
     return {
       revisions: revisions.map((revision) => ({
         id: revision.id,
         version: revision.version,
         title: revision.title,
         body: revision.content,
+        latexBuildId: revision.latexBuildId,
+        latexProjectId: revision.latexBuildId ? projectIds.get(revision.latexBuildId) ?? null : null,
         source: revision.source,
         difficulty: revision.difficulty,
         status: revision.status,
@@ -313,6 +339,18 @@ export class ProblemsService {
     return categories.sort((left, right) => left.slug.localeCompare(right.slug));
   }
 
+  private async validateLatexBuild(manager: EntityManager, buildId: string, ownerId: string): Promise<void> {
+    const build = await manager.getRepository(LatexBuildEntity)
+      .createQueryBuilder('build')
+      .innerJoin('build.project', 'project')
+      .where('build.id = :buildId AND project.ownerId = :ownerId', { buildId, ownerId })
+      .getOne();
+    if (!build || build.status !== LatexBuildStatus.Success || !build.pdfPath) {
+      throw new BadRequestException('Chọn bản PDF đã biên dịch thành công từ dự án LaTeX của tác giả.');
+    }
+    await compiledPdfPath(build);
+  }
+
   private async replaceCategories(
     manager: EntityManager,
     problemId: string,
@@ -355,6 +393,7 @@ export class ProblemsService {
       version: Number(latest?.version ?? 0) + 1,
       title: problem.title,
       content: problem.content,
+      latexBuildId: problem.latexBuildId,
       source: problem.source,
       difficulty: problem.difficulty,
       status: problem.status,
@@ -392,6 +431,10 @@ export class ProblemsService {
       slug: problem.slug,
       title: problem.title,
       body: problem.content,
+      latexBuildId: problem.latexBuildId,
+      latexPdfUrl: problem.status === ProblemStatus.Published && problem.latexBuildId
+        ? `/api/v1/problems/${problem.id}/pdf`
+        : null,
       source: problem.source,
       difficulty: problem.difficulty,
       status: problem.status,

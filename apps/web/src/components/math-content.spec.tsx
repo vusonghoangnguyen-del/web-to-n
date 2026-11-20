@@ -21,4 +21,28 @@ describe('MathContent', () => {
     expect(html).toContain('<table>');
     expect(html).toContain('<ul>');
   });
+
+  it('hiển thị công thức khối trong Markdown', () => {
+    const html = renderToStaticMarkup(<MathContent content={'$$\nx^2\n$$'} />);
+    expect(html).toContain('\\[x^2\\]');
+  });
+
+  it('hiển thị phần thân tài liệu TeX và công thức thay vì in phần khai báo', () => {
+    const tex = String.raw`\documentclass[12pt]{article}
+\usepackage{amsmath}
+\title{Bản thảo}
+\begin{document}
+\maketitle
+\section{Đề bài}
+Tìm nghiệm của phương trình \(2x^2 + 3x - 5 = 0\).
+Ta có công thức \[e^{i\pi}+1=0.\]
+\end{document}`;
+    const html = renderToStaticMarkup(<MathContent content={tex} />);
+    expect(html).toContain('Đề bài');
+    expect(html).toContain('\\(2x^2 + 3x - 5 = 0\\)');
+    expect(html).toContain('\\[e^{i\\pi}+1=0.\\]');
+    expect(html).not.toContain('documentclass');
+    expect(html).not.toContain('usepackage');
+    expect(html).not.toContain('maketitle');
+  });
 });

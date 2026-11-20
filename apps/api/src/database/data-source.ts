@@ -16,6 +16,7 @@ import { LatexProjects1763596800000 } from './migrations/1763596800000-latex-pro
 import { LatexBuilds1763683200000 } from './migrations/1763683200000-latex-builds';
 import { LatexMultipleFiles1763769600000 } from './migrations/1763769600000-latex-multiple-files';
 import { PasswordReset1763856000000 } from './migrations/1763856000000-password-reset';
+import { ProblemLatexPdf1763942400000 } from './migrations/1763942400000-problem-latex-pdf';
 
 loadEnvironment({ path: path.resolve(__dirname, '../../../../.env'), quiet: true });
 const environment = validateEnvironment(process.env);
@@ -43,6 +44,7 @@ export default new DataSource({
     LatexBuilds1763683200000,
     LatexMultipleFiles1763769600000,
     PasswordReset1763856000000,
+    ProblemLatexPdf1763942400000,
   ],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,

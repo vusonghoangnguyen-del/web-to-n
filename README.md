@@ -78,6 +78,8 @@ Hướng dẫn chuẩn bị triển khai VPS, HTTPS, backup, khôi phục và ki
 
 Sau khi đăng nhập, mở `http://127.0.0.1:5174/latex` để tạo dự án, soạn `main.tex` và các tệp phụ, tải ảnh lên hoặc nhập ZIP từ TeXstudio. Chọn compiler và biên dịch toàn bộ dự án thành PDF; có thể tải ZIP nguồn về. Bản thảo tự lưu trong MySQL; PDF, trạng thái và log của mỗi lần biên dịch có thể xem trong trang. Nếu từng soạn trong phiên bản lưu ở trình duyệt, dùng nút **Đưa lên MySQL** tại trang này để nhập bản nháp cũ.
 
+Để đăng PDF như một bài toán: biên dịch dự án thành công, mở **Soạn bài**, chọn **Dự án LaTeX** và **bản PDF đã biên dịch**. Viết tiêu đề, đoạn giới thiệu/đề bài bằng văn bản và chọn chuyên mục rồi gửi duyệt. Sau khi xuất bản, trang bài toán hiển thị PDF ngay trong trang, kèm liên kết mở/tải và phần văn bản dự phòng. PDF của bài chưa xuất bản vẫn chỉ chủ dự án xem được. Bài giữ đúng bản biên dịch đã chọn, kể cả khi `main.tex` được sửa sau đó; không thể xóa dự án khi PDF vẫn gắn với bài.
+
 Máy chưa áp dụng schema mới cần chạy `npm.cmd run migration:run` một lần và nhập mật khẩu MySQL root trong terminal. Biên dịch PDF cần Docker Desktop, Redis và worker; cách chạy và giới hạn ở [PHASE_9.md](PHASE_9.md). Phần lưu mã nguồn ở [PHASE_8.md](PHASE_8.md).
 
 ## Chức năng cơ bản

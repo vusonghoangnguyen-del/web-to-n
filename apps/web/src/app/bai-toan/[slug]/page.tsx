@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { ContributionForms } from '@/components/contribution-forms';
+import { CleanPdfViewer } from '@/components/clean-pdf-viewer';
 import { MathContent } from '@/components/math-content';
 import { ProblemActions } from '@/components/problem-actions';
 import { getProblemPageData, problemHref, type PublicComment, type PublicSolution } from '@/lib/public-api';
@@ -12,7 +14,7 @@ type PageProperties = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: PageProperties): Promise<Metadata> {
   const { slug } = await params;
   const { problem } = await getProblemPageData(slug);
-  if (!problem) return { title: 'Không tìm thấy bài toán' };
+  if (!problem) return { title: 'Không tìm thấy bài viết' };
   const description = summarize(problem.body, 155);
   return {
     title: problem.title,
@@ -27,7 +29,7 @@ export default async function ProblemDetailPage({ params }: PageProperties) {
   const data = await getProblemPageData(slug);
   if (data.notFound) notFound();
   if (!data.available || !data.problem) {
-    return <section className="detail-unavailable page-shell"><span aria-hidden="true">∅</span><h1>Chưa tải được bài toán</h1><p>Không thể kết nối tới NestJS API. Hãy khởi động API rồi tải lại trang.</p><Link className="outline-button" href="/bai-toan">← Về kho bài toán</Link></section>;
+    return <section className="detail-unavailable page-shell"><span aria-hidden="true">∅</span><h1>Chưa tải được bài viết</h1><p>Không thể kết nối tới NestJS API. Hãy khởi động API rồi tải lại trang.</p><Link className="outline-button" href="/bai-toan">← Về kho bài viết</Link></section>;
   }
 
   const problem = data.problem;
@@ -39,42 +41,21 @@ export default async function ProblemDetailPage({ params }: PageProperties) {
     articleSection: problem.categories.map((category) => category.name),
   };
 
-  return (
-    <>
-      <article className="problem-detail page-shell">
-        <nav className="detail-breadcrumb" aria-label="Đường dẫn"><Link href="/bai-toan">Kho bài toán</Link><span>→</span><span>{problem.categories[0]?.name ?? 'Bài toán'}</span></nav>
-        <header className="detail-header">
-          <div className="detail-kicker"><span className="eyebrow">{problem.categories.map((category) => category.name).join(' · ') || 'Bài toán cộng đồng'}</span><span>{formatDate(publishedAt)}</span></div>
-          <h1>{problem.title}</h1>
-          <div className="detail-byline"><p>Bài của <strong>{problem.author.name}</strong> · @{problem.author.username}</p><span className={`detail-difficulty ${difficultyClass(problem.difficulty)}`}>{problem.difficulty}</span></div>
-        </header>
-
-        <div className="detail-layout">
-          <section className="problem-statement" aria-labelledby="problem-statement-title">
-            <span className="section-number">01</span><div><h2 id="problem-statement-title">Đề bài</h2><MathContent content={problem.body} className="math-copy" />{safeHttpUrl(problem.source) && <a className="detail-source" href={problem.source!} target="_blank" rel="noreferrer">Nguồn tham khảo ↗</a>}</div>
-          </section>
-          <aside className="detail-sidebar"><strong>Thử trước khi xem lời giải</strong><p>Ghi lại giả thiết, thử một trường hợp nhỏ và tìm xem điều gì không đổi.</p><dl><div><dt>Thảo luận</dt><dd>{problem.commentCount}</dd></div><div><dt>Lời giải</dt><dd>{data.solutions.length}</dd></div></dl></aside>
-        </div>
-
-        <ProblemActions problemId={problem.id} initialLikes={data.engagement.reactionCount} initialFollowers={data.engagement.followerCount} />
-      </article>
-
-      <section className="verified-solutions-section" id="loi-giai">
-        <div className="page-shell">
-          <header className="detail-section-heading"><div><span className="eyebrow">Đã được tòa soạn kiểm chứng</span><h2>Lời giải từ cộng đồng</h2></div><span>{data.solutions.length} lời giải</span></header>
-          {data.solutions.length ? <div className="verified-solution-list">{data.solutions.map((solution, index) => <SolutionCard key={solution.id} solution={solution} index={index} reactions={data.engagement.solutionReactions[solution.id] ?? 0} />)}</div> : <EmptyCommunity copy="Chưa có lời giải nào được kiểm chứng. Bạn có thể gửi một cách giải mới ở bên dưới." />}
-        </div>
-      </section>
-
-      <section className="discussion-section page-shell" id="thao-luan">
-        <header className="detail-section-heading"><div><span className="eyebrow">Trao đổi từng bước</span><h2>Thảo luận</h2></div><span>{data.comments.length} bình luận</span></header>
-        {data.comments.length ? <CommentTree comments={data.comments} /> : <EmptyCommunity copy="Chưa có bình luận. Hãy là người đầu tiên mở một hướng suy nghĩ." />}
-      </section>
-
-      <section className="contribution-section page-shell"><ContributionForms problemId={problem.id} /></section>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }} />
-    </>
-  );
+  return <>
+    <article className="problem-detail page-shell catalog-detail">
+      <nav className="detail-breadcrumb" aria-label="Đường dẫn"><Link href="/bai-toan">Bài viết</Link><span>›</span><span>{problem.categories[0]?.name ?? 'Toán học'}</span></nav>
+      <header className="detail-header"><div className="catalog-lead-meta"><span className="catalog-topic">{problem.categories.map((category) => category.name).join(', ') || 'Toán học'}</span><span>{problem.difficulty}</span><span>{data.comments.length} thảo luận</span></div><h1>{problem.title}</h1><p className="detail-byline">{problem.author.name} · Xuất bản <time dateTime={publishedAt}>{formatDate(publishedAt)}</time></p></header>
+      <div className="catalog-detail-layout">
+        <WorkspaceTabs className="reader-tabs" syncHash tabs={[{ id: 'de-bai', label: 'Nội dung' }, { id: 'loi-giai', label: 'Phản hồi & lời giải (' + data.solutions.length + ')' }, { id: 'thao-luan', label: 'Thảo luận (' + data.comments.length + ')' }]}>
+          <section id="de-bai" className="catalog-statement"><h2>Nội dung</h2>{problem.latexPdfUrl ? <><div className="detail-pdf-toolbar"><a href={problem.latexPdfUrl} target="_blank" rel="noopener noreferrer">Mở PDF trong tab mới ↗</a><a href={problem.latexPdfUrl} download={problem.slug + '.pdf'}>Tải PDF ↓</a></div><CleanPdfViewer url={problem.latexPdfUrl} title={`Bản PDF — ${problem.title}`} /><details className="detail-text-fallback"><summary>Xem nội dung văn bản</summary><MathContent content={problem.body} className="math-copy" /></details></> : <MathContent content={problem.body} className="math-copy" />}{safeHttpUrl(problem.source) && <a className="detail-source" href={problem.source!} target="_blank" rel="noreferrer">Nguồn tham khảo ↗</a>}<p className="statement-contribute"><a className="ink-button" href="#loi-giai">Gửi phản hồi hoặc lời giải</a></p></section>
+          <section id="loi-giai" className="catalog-solutions"><h2>Lời giải từ cộng đồng</h2>{data.solutions.length ? <div className="verified-solution-list">{data.solutions.map((solution, index) => <SolutionCard key={solution.id} solution={solution} index={index} reactions={data.engagement.solutionReactions[solution.id] ?? 0} />)}</div> : <EmptyCommunity copy="Chưa có lời giải được kiểm chứng." />}<ContributionForms problemId={problem.id} kind="solution" /></section>
+          <section id="thao-luan" className="catalog-discussion"><h2>Thảo luận</h2>{data.comments.length ? <CommentTree comments={data.comments} /> : <EmptyCommunity copy="Chưa có bình luận." />}<ContributionForms problemId={problem.id} kind="comment" /></section>
+        </WorkspaceTabs>
+        <aside className="catalog-detail-rail"><h2>Tương tác</h2><ProblemActions problemId={problem.id} initialLikes={data.engagement.reactionCount} initialFollowers={data.engagement.followerCount} /><h2>Thông tin</h2><p>{problem.categories.map((category) => category.name).join(', ')}</p><p>{problem.difficulty}</p>{problem.source && <p>Nguồn: {safeHttpUrl(problem.source) ? <a href={problem.source} target="_blank" rel="noopener noreferrer">Tham khảo ↗</a> : problem.source}</p>}</aside>
+      </div>
+    </article>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }} />
+  </>;
 }
 
 function SolutionCard({ solution, index, reactions }: { solution: PublicSolution; index: number; reactions: number }) {

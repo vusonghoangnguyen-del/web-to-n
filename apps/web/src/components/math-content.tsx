@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import { prepareMathContent } from '../lib/prepare-math-content';
 
 type MathJaxRuntime = {
   typesetClear?: (elements?: Element[]) => void;
@@ -47,7 +48,7 @@ export function MathContent({ content, className = '' }: { content: string; clas
           h3: ({ children }) => <h5>{children}</h5>,
         }}
       >
-        {content}
+        {prepareMathContent(content)}
       </Markdown>
     </div>
   );

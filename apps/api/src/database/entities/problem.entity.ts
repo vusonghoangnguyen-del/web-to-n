@@ -12,6 +12,7 @@ import { CommentEntity } from './comment.entity';
 import { ProblemCategoryEntity } from './problem-category.entity';
 import { SolutionEntity } from './solution.entity';
 import { UserEntity } from './user.entity';
+import { LatexBuildEntity } from './latex-build.entity';
 
 export enum ProblemDifficulty {
   Easy = 'Dễ',
@@ -51,6 +52,13 @@ export class ProblemEntity {
 
   @Column({ type: 'text' })
   content!: string;
+
+  @Column({ name: 'latex_build_id', type: 'bigint', unsigned: true, nullable: true })
+  latexBuildId!: string | null;
+
+  @ManyToOne(() => LatexBuildEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'latex_build_id', foreignKeyConstraintName: 'fk_problems_latex_build' })
+  latexBuild!: LatexBuildEntity | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   source!: string | null;

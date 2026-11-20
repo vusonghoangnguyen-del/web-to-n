@@ -4,6 +4,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException, 
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { LatexBuildEntity, LatexBuildStatus } from '../database/entities/latex-build.entity';
+import { ProblemEntity } from '../database/entities/problem.entity';
 import { LatexFileEntity } from '../database/entities/latex-file.entity';
 import { LatexCompiler, LatexProjectEntity } from '../database/entities/latex-project.entity';
 import { CreateLatexProjectDto } from './dto/create-latex-project.dto';
@@ -158,6 +159,12 @@ export class LatexService {
     const project = await this.ownedProject(ownerId, id);
     const active = await this.builds.existsBy({ projectId: project.id, status: In([LatexBuildStatus.Queued, LatexBuildStatus.Compiling]) });
     if (active) throw new ConflictException('Hãy chờ biên dịch xong trước khi xóa dự án.');
+    const attached = await this.dataSource.getRepository(ProblemEntity)
+      .createQueryBuilder('problem')
+      .innerJoin(LatexBuildEntity, 'build', 'build.id = problem.latexBuildId')
+      .where('build.projectId = :projectId', { projectId: project.id })
+      .getExists();
+    if (attached) throw new ConflictException('Dự án đang có PDF gắn vào bài toán. Hãy gỡ PDF khỏi bài trước khi xóa dự án.');
     await this.projects.delete(project.id);
     await rm(path.join(latexStorageRoot(), project.id), { recursive: true, force: true });
   }

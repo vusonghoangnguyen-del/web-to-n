@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useImperativeHandle, type Ref } from 'react';
+import { CleanPdfViewer } from './clean-pdf-viewer';
 
-type Build = {
+export type Build = {
   id: string;
   status: 'queued' | 'compiling' | 'success' | 'failed' | 'cancelled';
   compiler: string;
@@ -20,11 +21,16 @@ const labels: Record<Build['status'], string> = {
   cancelled: 'Đã hủy',
 };
 
-export function LatexBuildPanel({ projectId, flush }: { projectId: string; flush: () => Promise<boolean> }) {
+export type BuildCommands = { compile: () => Promise<void> };
+export function LatexBuildPanel({ projectId, flush, onSubmit, controlsRef, onBusyChange, onSelectionChange }: { projectId: string; flush: () => Promise<boolean>; onSubmit?: (buildId: string) => void; controlsRef?: Ref<BuildCommands>; onBusyChange?: (busy: boolean) => void; onSelectionChange?: (build: Build | null) => void }) {
   const [builds, setBuilds] = useState<Build[]>([]);
   const [selected, setSelected] = useState<Build | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showLog,setShowLog] = useState(false);
+  useImperativeHandle(controlsRef, () => ({compile}));
+  useEffect(() => {onBusyChange?.(busy);},[busy,onBusyChange]);
+  useEffect(() => {onSelectionChange?.(selected);},[selected,onSelectionChange]);
   const base = `/api/v1/latex/projects/${projectId}`;
 
   useEffect(() => {
@@ -67,14 +73,12 @@ export function LatexBuildPanel({ projectId, flush }: { projectId: string; flush
     catch (cause) { setError(text(cause)); }
   }
 
-  return <section className="latex-build-panel" aria-label="Biên dịch tài liệu LaTeX">
-    <header><div><strong>Biên dịch tài liệu</strong><p>Chạy toàn bộ <code>main.tex</code> bằng TeX Live để tạo PDF, gồm tiêu đề, mục, công thức và bố cục bài viết.</p></div><button className="ink-button" type="button" disabled={busy || selected?.status === 'queued' || selected?.status === 'compiling'} onClick={() => void compile()}>{busy ? 'Đang gửi…' : 'Biên dịch PDF →'}</button></header>
-    {error && <p className="latex-error" role="alert">{error}</p>}
-    {builds.length > 0 && <div className="latex-build-history" aria-label="Các lần biên dịch">{builds.map((build) => <button className={selected?.id === build.id ? 'active' : ''} key={build.id} type="button" onClick={() => void select(build.id)}>#{build.id} · {build.compiler} · {labels[build.status]}</button>)}</div>}
-    {selected && <div className="latex-build-result"><p role="status"><strong>{labels[selected.status]}</strong> · {new Date(selected.createdAt).toLocaleString('vi-VN')}{selected.errorMessage ? ` · ${selected.errorMessage}` : ''}</p>
-      {selected.pdfUrl && <><div className="latex-pdf-actions"><a href={selected.pdfUrl} target="_blank" rel="noreferrer">Mở PDF ↗</a><a href={selected.pdfUrl} download={`latex-${selected.id}.pdf`}>Tải PDF ↓</a></div><iframe title="Bản PDF đã biên dịch" src={selected.pdfUrl}/></>}
-      {selected.log && <details><summary>Xem nhật ký biên dịch</summary><pre>{selected.log}</pre></details>}
-    </div>}
+  const history = <label className="workbench-build-choice"><span className="visually-hidden">Bản biên dịch</span><select aria-label="Chọn bản biên dịch" value={selected?.id ?? ''} onChange={(event)=>void select(event.target.value)} disabled={!builds.length}>{!builds.length&&<option value="">Chưa có bản biên dịch</option>}{builds.map(build=><option key={build.id} value={build.id}>{new Intl.DateTimeFormat('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}).format(new Date(build.createdAt))} · {labels[build.status]}</option>)}</select></label>;
+  const actions = <details className="workbench-menu pdf-menu"><summary aria-label="Thao tác PDF">•••</summary><div className="workbench-menu-items">{selected?.pdfUrl&&<><a href={selected.pdfUrl} target="_blank" rel="noreferrer">Mở PDF ↗</a><a href={selected.pdfUrl} download={'latex-'+selected.id+'.pdf'}>Tải PDF</a>{onSubmit&&<button type="button" onClick={()=>onSubmit(selected.id)}>Gửi PDF duyệt</button>}</>}<button type="button" disabled={!selected?.log} onClick={()=>setShowLog(value=>!value)}>{showLog?'Đóng nhật ký':'Xem nhật ký'}</button></div></details>;
+  return <section className="latex-build-panel" aria-label="Bản PDF">
+    {selected?.pdfUrl ? <CleanPdfViewer url={selected.pdfUrl} title="Bản PDF" compact heading={history} actions={actions}/> : <><header className="workbench-pdf-header">{history}{actions}</header><div className="workbench-pdf-empty"><h2>{selected ? labels[selected.status] : 'Chưa có bản PDF'}</h2><p>{selected?.errorMessage || (selected?.status==='queued'||selected?.status==='compiling'?'Bản PDF sẽ xuất hiện khi biên dịch hoàn tất.':'Chọn Biên dịch PDF để xem bản in của tài liệu.')}</p></div></>}
+    {error&&<p className="latex-error" role="alert">{error}</p>}
+    {showLog&&<section className="workbench-build-log"><header><strong>Nhật ký biên dịch</strong><button type="button" onClick={()=>setShowLog(false)}>Đóng</button></header><pre>{selected?.log || 'Chưa có nhật ký.'}</pre></section>}
   </section>;
 }
 

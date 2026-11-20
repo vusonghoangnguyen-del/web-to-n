@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Header,
   UseGuards,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -46,6 +47,14 @@ export class ProblemsController {
   @ApiOperation({ summary: 'Lịch sử phiên bản của bài toán' })
   history(@Param('identifier') identifier: string, @CurrentUser() user: PublicUser) {
     return this.problems.history(identifier, user);
+  }
+
+  @Get(':identifier/pdf')
+  @Header('Cache-Control', 'no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  @ApiOperation({ summary: 'Đọc PDF đính kèm bài toán đã xuất bản' })
+  pdf(@Param('identifier') identifier: string) {
+    return this.problems.pdf(identifier);
   }
 
   @Get(':identifier')

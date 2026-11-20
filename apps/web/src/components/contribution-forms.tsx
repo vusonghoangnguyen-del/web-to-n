@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { DebouncedMathPreview, MarkdownTextarea } from './markdown-editor';
 
-export function ContributionForms({ problemId }: { problemId: string }) {
+export function ContributionForms({ problemId, kind }: { problemId: string; kind?: 'solution' | 'comment' }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -23,7 +23,7 @@ export function ContributionForms({ problemId }: { problemId: string }) {
     return <p className="account-hint">Bạn cần <Link href={`/dang-nhap?return=${encodeURIComponent(pathname)}`}>đăng nhập</Link> để gửi lời giải hoặc tham gia thảo luận.</p>;
   }
 
-  return <div className="contribution-grid"><SubmissionForm problemId={problemId} kind="solution" onSuccess={() => router.refresh()} /><SubmissionForm problemId={problemId} kind="comment" onSuccess={() => router.refresh()} /></div>;
+  return <div className={kind ? 'contribution-single' : 'contribution-grid'}>{kind !== 'comment' && <SubmissionForm problemId={problemId} kind="solution" onSuccess={() => router.refresh()} />}{kind !== 'solution' && <SubmissionForm problemId={problemId} kind="comment" onSuccess={() => router.refresh()} />}</div>;
 }
 
 function SubmissionForm({ problemId, kind, onSuccess }: { problemId: string; kind: 'solution' | 'comment'; onSuccess: () => void }) {

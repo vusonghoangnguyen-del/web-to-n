@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getProblems, problemHref, type PublicProblem } from '@/lib/public-api';
+import { getProblems } from '@/lib/public-api';
+import { ProblemListItem } from '@/components/problem-list-item';
+import { ProblemSearch } from '@/components/problem-search';
+import { ResponsiveDisclosure } from '@/components/responsive-disclosure';
 
 export const metadata: Metadata = {
-  title: 'Kho bài toán',
-  description: 'Tìm kiếm và khám phá các bài toán số học, đại số, hình học, tổ hợp, logic và xác suất từ cộng đồng Tờ Toán.',
+  title: 'Kho bài viết',
+  description: 'Tìm kiếm và khám phá các bài viết toán học từ cộng đồng Tờ Toán.',
 };
 
 type SearchParameters = Record<string, string | string[] | undefined>;
@@ -26,19 +29,14 @@ export default async function ProblemsPage({ searchParams }: { searchParams: Pro
   const result = await getProblems({ page, limit: 12, search, category, difficulty });
 
   return (
-    <>
+    <div className="catalog-archive page-shell">
       <header className="archive-hero page-shell">
-        <div><span className="eyebrow">Thư viện cộng đồng</span><h1>Kho bài toán</h1></div>
-        <p>Tìm một bài vừa sức, hoặc khó hơn một chút. Mỗi đề bài đều đã được tòa soạn duyệt trước khi xuất bản.</p>
+        <h1>Kho bài viết</h1><p>Bài toán, bài báo và thảo luận từ cộng đồng</p>
       </header>
 
-      <section className="archive-controls page-shell" aria-label="Tìm kiếm và lọc bài toán">
-        <form className="archive-search" action="/bai-toan" method="get">
-          <label htmlFor="problem-search">Tìm kiếm</label>
-          <div><input id="problem-search" name="search" type="search" defaultValue={search} maxLength={100} placeholder="Tiêu đề hoặc nội dung…" /><button type="submit">Tìm →</button></div>
-          {category !== 'all' && <input type="hidden" name="category" value={category} />}
-          {difficulty && <input type="hidden" name="difficulty" value={difficulty} />}
-        </form>
+      <div className="catalog-archive-layout">
+      <ResponsiveDisclosure className="catalog-filter-panel" label="Bộ lọc"><section className="archive-controls" aria-label="Lọc bài viết">
+        <h2>Chuyên mục</h2>
 
         <nav className="category-filters" aria-label="Lọc theo chuyên mục">
           {categories.map(([slug, label]) => <Link key={slug} href={filterHref({ search, category: slug, difficulty, page: 1 })} className={category === slug ? 'active' : undefined} aria-current={category === slug ? 'page' : undefined}>{label}</Link>)}
@@ -52,26 +50,16 @@ export default async function ProblemsPage({ searchParams }: { searchParams: Pro
           <button className="outline-button" type="submit">Áp dụng</button>
           {(search || category !== 'all' || difficulty) && <Link className="clear-filters" href="/bai-toan">Xóa bộ lọc</Link>}
         </form>
-      </section>
+      </section></ResponsiveDisclosure>
 
-      <section className="archive-results page-shell" aria-live="polite">
-        <header className="results-heading"><p><strong>{result.total}</strong> bài toán phù hợp</p>{search && <span>Kết quả cho “{search}”</span>}</header>
-        {!result.available ? <ArchiveMessage title="Chưa kết nối được NestJS API" copy="Khởi động API bằng npm.cmd run dev:nest rồi tải lại trang." /> : result.problems.length ? <div className="archive-grid">{result.problems.map((problem, index) => <ArchiveCard key={problem.id} problem={problem} number={(result.page - 1) * result.limit + index + 1} />)}</div> : <ArchiveMessage title="Không tìm thấy bài toán phù hợp" copy="Hãy thử từ khóa, chuyên mục hoặc mức độ khác." />}
+      <section className="archive-results" aria-live="polite">
+        <ProblemSearch search={search} category={category} difficulty={difficulty} />
+        <header className="results-heading"><p>{result.available ? <><strong>{result.total}</strong> bài viết{search || category !== 'all' || difficulty ? ' phù hợp' : ''}</> : 'Không thể tải kết quả'}</p>{search && <span>Kết quả cho “{search}”</span>}</header>
+        {!result.available ? <ArchiveMessage title="Chưa tải được bài viết" copy="Vui lòng tải lại trang sau ít phút." /> : result.problems.length ? <div className="catalog-results">{result.problems.map((problem) => <ProblemListItem key={problem.id} problem={problem} />)}</div> : <ArchiveMessage title="Không tìm thấy bài viết phù hợp" copy="Hãy thử từ khóa, chuyên mục hoặc mức độ khác." />}
         {result.available && result.totalPages > 1 && <Pagination currentPage={result.page} totalPages={result.totalPages} filters={{ search, category, difficulty }} />}
       </section>
-    </>
-  );
-}
-
-function ArchiveCard({ problem, number }: { problem: PublicProblem; number: number }) {
-  return (
-    <article className="archive-card">
-      <div className="card-top"><span className="number">{String(number).padStart(2, '0')}</span><span className="rubric">{problem.categories.map((item) => item.name).join(' · ') || 'Bài toán'}</span></div>
-      <h2><Link href={problemHref(problem)}>{problem.title}</Link></h2>
-      <p>{summarize(problem.body, 180)}</p>
-      <div className="archive-author">Bởi <strong>{problem.author.name}</strong></div>
-      <div className="archive-card-footer"><span>{problem.difficulty}</span><span>{problem.commentCount} thảo luận</span><Link href={problemHref(problem)} aria-label={`Đọc bài ${problem.title}`}>Đọc →</Link></div>
-    </article>
+      </div>
+    </div>
   );
 }
 
@@ -81,7 +69,7 @@ function ArchiveMessage({ title, copy }: { title: string; copy: string }) {
 
 function Pagination({ currentPage, totalPages, filters }: { currentPage: number; totalPages: number; filters: { search: string; category: string; difficulty: string } }) {
   const pages = pageWindow(currentPage, totalPages);
-  return <nav className="pagination" aria-label="Phân trang bài toán">{currentPage > 1 && <Link href={filterHref({ ...filters, page: currentPage - 1 })} rel="prev">← Trước</Link>}<div>{pages.map((page) => <Link key={page} href={filterHref({ ...filters, page })} className={page === currentPage ? 'active' : undefined} aria-current={page === currentPage ? 'page' : undefined}>{page}</Link>)}</div>{currentPage < totalPages && <Link href={filterHref({ ...filters, page: currentPage + 1 })} rel="next">Sau →</Link>}</nav>;
+  return <nav className="pagination" aria-label="Phân trang bài viết">{currentPage > 1 && <Link href={filterHref({ ...filters, page: currentPage - 1 })} rel="prev">← Trước</Link>}<div>{pages.map((page) => <Link key={page} href={filterHref({ ...filters, page })} className={page === currentPage ? 'active' : undefined} aria-current={page === currentPage ? 'page' : undefined}>{page}</Link>)}</div>{currentPage < totalPages && <Link href={filterHref({ ...filters, page: currentPage + 1 })} rel="next">Sau →</Link>}</nav>;
 }
 
 function filterHref(filters: { search?: string; category?: string; difficulty?: string; page?: number }): string {
@@ -107,9 +95,4 @@ function positiveInteger(value: string): number {
 
 function single(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
-}
-
-function summarize(value: string, maxLength: number): string {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength).trimEnd()}…`;
 }

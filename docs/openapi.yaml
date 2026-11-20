@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: Project API
+  version: 0.1.0
+  description: |
+    Nguồn chuẩn chung cho backend do Codex triển khai và frontend do Kombai triển khai.
+    Mọi endpoint nghiệp vụ phải được thêm vào tài liệu này trước khi tích hợp.
+servers:
+  - url: /api/v1
+    description: Same-origin API
+
+tags:
+  - name: System
+    description: Trạng thái và khả năng sẵn sàng của hệ thống
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Kiểm tra API đang hoạt động
+      security: []
+      responses:
+        '200':
+          description: API hoạt động bình thường
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  value:
+                    status: ok
+                    version: 0.1.0
+                    timestamp: '2026-11-20T08:30:00Z'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Request không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Thiếu hoặc hết hạn thông tin đăng nhập
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Không có quyền thực hiện thao tác
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Dữ liệu không thỏa mãn quy tắc nghiệp vụ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidEmail:
+              value:
+                error:
+                  code: VALIDATION_ERROR
+                  message: Dữ liệu chưa hợp lệ.
+                  fieldErrors:
+                    email:
+                      - Email không đúng định dạng.
+                  requestId: req_01J00000000000000000000000
+    InternalServerError:
+      description: Lỗi ngoài dự kiến
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, version, timestamp]
+      properties:
+        status:
+          type: string
+          const: ok
+        version:
+          type: string
+          examples: [0.1.0]
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiError'
+
+    ApiError:
+      type: object
+      additionalProperties: false
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]*$'
+          examples: [VALIDATION_ERROR]
+        message:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        requestId:
+          type: string
+
+    PaginationMeta:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        totalItems:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0

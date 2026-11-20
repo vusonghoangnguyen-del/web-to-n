@@ -32,6 +32,9 @@ export class ProblemRevisionEntity {
   @Column({ type: 'text' })
   content!: string;
 
+  @Column({ name: 'latex_build_id', type: 'bigint', unsigned: true, nullable: true })
+  latexBuildId!: string | null;
+
   @Column({ type: 'varchar', length: 500, nullable: true })
   source!: string | null;
 

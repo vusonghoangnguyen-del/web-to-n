@@ -1,14 +1,11 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import path from 'node:path';
-import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException, StreamableFile } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { LatexBuildEntity, LatexBuildStatus } from '../database/entities/latex-build.entity';
 import { LatexFileEntity } from '../database/entities/latex-file.entity';
 import { LatexProjectEntity } from '../database/entities/latex-project.entity';
-import { latexStorageRoot } from './build-config';
+import { streamCompiledPdf } from './latex-pdf';
 import { LatexQueueService } from './latex-queue.service';
 import { checkProjectFiles, ProjectFile } from './latex-files';
 import { writeProjectZip } from './latex-zip';
@@ -73,18 +70,7 @@ export class LatexBuildService {
 
   async pdf(ownerId: string, projectId: string, buildId: string) {
     const build = await this.ownedBuild(ownerId, projectId, buildId);
-    if (build.status !== LatexBuildStatus.Success || !build.pdfPath) throw new NotFoundException('Chưa có PDF cho bản biên dịch này.');
-    const absolute = path.resolve(latexStorageRoot(), build.pdfPath);
-    const root = latexStorageRoot();
-    if (!absolute.startsWith(root + path.sep)) throw new NotFoundException('Đường dẫn PDF không hợp lệ.');
-    try {
-      const file = await stat(absolute);
-      if (!file.isFile()) throw new Error('Not a file');
-    } catch { throw new NotFoundException('Không tìm thấy PDF trên ổ lưu trữ.'); }
-    return new StreamableFile(createReadStream(absolute), {
-      type: 'application/pdf',
-      disposition: `inline; filename="latex-${build.id}.pdf"`,
-    });
+    return streamCompiledPdf(build);
   }
 
   private async ownedProject(ownerId: string, id: string) {

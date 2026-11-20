@@ -30,7 +30,7 @@ export function NewsletterForm() {
   }
 
   return (
-    <form onSubmit={submit}>
+    <form className="newsletter-form" onSubmit={submit}>
       <label htmlFor="newsletter-email">Email đăng ký</label>
       <div>
         <input id="newsletter-email" name="email" type="email" required placeholder="ban@vidu.vn" />

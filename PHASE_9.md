@@ -32,6 +32,7 @@ Migration `1763683200000-latex-builds.ts` tạo bảng `latex_builds` với tr�
 | GET | `/api/v1/latex/projects/:id/builds` | Danh sách 20 build gần nhất |
 | GET | `/api/v1/latex/projects/:id/builds/:buildId` | Trạng thái và log |
 | GET | `/api/v1/latex/projects/:id/builds/:buildId/pdf` | Đọc PDF nếu đã thành công |
+| GET | `/api/v1/problems/:identifier/pdf` | Đọc PDF của bài toán đã xuất bản |
 | POST | `/api/v1/latex/projects/import-zip` | Nhập dự án ZIP |
 | POST | `/api/v1/latex/projects/:id/files` | Tạo tệp văn bản |
 | POST | `/api/v1/latex/projects/:id/files/upload` | Tải tệp hỗ trợ lên |
@@ -43,4 +44,4 @@ Migration `1763683200000-latex-builds.ts` tạo bảng `latex_builds` với tr�
 
 Mỗi container tắt mạng và `shell-escape`, chỉ có một CPU, tối đa 512 MB RAM, không có quyền root, filesystem chỉ đọc ngoài thư mục làm việc và bị xóa sau job. Thời gian tối đa 30 giây cho pdfLaTeX/XeLaTeX, 90 giây cho LuaLaTeX vì lần chạy đầu phải tạo cache font. Tối đa 100 tệp/dự án; mỗi tệp văn bản tối đa 1 MB, tệp nhị phân 5 MB, cả dự án 25 MB, ZIP nhập 20 MB. PDF tối đa 20 MB, log tối đa 500.000 ký tự. Worker chạy độc lập với API và mỗi lần chỉ biên dịch một job; có thể chạy thêm worker khi cần.
 
-Đã kiểm tra build API/web, migration MySQL, biên dịch PDF bằng cả ba compiler; kiểm thử `node apps/api/test/latex-build.e2e.mjs` xác nhận `\input` từ thư mục con, ảnh PNG qua `\includegraphics`, tài liệu tham khảo BibTeX, ZIP xuất/nhập lại, PDF thật, lỗi biên dịch có log, phân quyền và xóa dự án. ZIP cần `main.tex` ở gốc hoặc đúng một tệp `.tex` gốc để dùng làm tệp chính; cho phép một thư mục bao ngoài. Chưa có quản lý gói TeX Live riêng hoặc chức năng xuất bản bài báo trực tiếp từ dự án.
+Đã kiểm tra build API/web, migration MySQL, biên dịch PDF bằng cả ba compiler; kiểm thử `node apps/api/test/latex-build.e2e.mjs` xác nhận `\input` từ thư mục con, ảnh PNG qua `\includegraphics`, tài liệu tham khảo BibTeX, ZIP xuất/nhập lại, PDF thật, lỗi biên dịch có log và phân quyền. Kiểm thử cũng xác nhận chỉ chủ dự án có thể gắn build thành công vào bài và PDF chỉ công khai sau khi bài xuất bản. ZIP cần `main.tex` ở gốc hoặc đúng một tệp `.tex` gốc để dùng làm tệp chính; cho phép một thư mục bao ngoài. Chưa có quản lý gói TeX Live riêng.

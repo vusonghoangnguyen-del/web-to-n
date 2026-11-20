@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { LatexWorkspace } from '@/components/latex-workspace';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Dự án LaTeX',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function LatexPage() {
-  return <LatexWorkspace />;
+  redirect('/soan-bai');
 }

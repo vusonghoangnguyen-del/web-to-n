@@ -8,6 +8,7 @@ import {
   IsString,
   Length,
   MaxLength,
+  Matches,
 } from 'class-validator';
 import { ProblemDifficulty, ProblemStatus } from '../../database/entities/problem.entity';
 
@@ -23,6 +24,12 @@ export class UpdateProblemDto {
   @IsString()
   @Length(10, 30_000)
   body?: string;
+
+  @ApiPropertyOptional({ nullable: true, description: 'ID bản PDF; null để gỡ khỏi bài' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[1-9]\d{0,19}$/)
+  latexBuildId?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()

@@ -23,6 +23,7 @@ const database = await mysql.createConnection({ host: process.env.DB_HOST, port:
 const children = [];
 const users = [];
 const projects = [];
+const problems = [];
 
 function run(args, env = {}) {
   const output = [];
@@ -161,6 +162,22 @@ See \cite{euler1748}.
   assert.equal(Buffer.from(await pdf.response.arrayBuffer()).subarray(0, 5).toString(), '%PDF-');
   assert.equal((await request(`${buildUrl}/pdf`, 'GET', other)).response.status, 404);
 
+  const problemPayload = { title: 'Bài toán PDF từ dự án LaTeX', body: 'Đọc bản PDF đính kèm để xem toàn bộ đề bài và công thức.', difficulty: 'Trung bình', categorySlugs: ['dai-so'], status: 'draft', latexBuildId: String(buildId) };
+  assert.equal((await request(`http://127.0.0.1:${port}/api/v1/problems`, 'POST', other, problemPayload)).response.status, 400);
+  const attached = await request(`http://127.0.0.1:${port}/api/v1/problems`, 'POST', owner, problemPayload);
+  assert.equal(attached.response.status, 201, JSON.stringify(attached.body));
+  const problemId = attached.body.problem.id;
+  problems.push(problemId);
+  assert.equal(attached.body.problem.latexBuildId, String(buildId));
+  assert.equal((await request(`http://127.0.0.1:${port}/api/v1/problems/${problemId}/pdf`, 'GET', '')).response.status, 404);
+  assert.equal((await request(`${base}/${projectId}`, 'DELETE', owner)).response.status, 409);
+  await database.execute("UPDATE problems SET status = 'published', published_at = CURRENT_TIMESTAMP WHERE id = ?", [problemId]);
+  const published = await request(`http://127.0.0.1:${port}/api/v1/problems/${problemId}`, 'GET', '');
+  assert.equal(published.body.problem.latexPdfUrl, `/api/v1/problems/${problemId}/pdf`);
+  const publicPdf = await request(`http://127.0.0.1:${port}${published.body.problem.latexPdfUrl}`, 'GET', '');
+  assert.equal(publicPdf.response.status, 200);
+  assert.equal(Buffer.from(await publicPdf.response.arrayBuffer()).subarray(0, 5).toString(), '%PDF-');
+
   const fileId = created.body.project.mainFile.id;
   await request(`${base}/${projectId}/files/${fileId}`, 'PUT', owner, { content: '\\documentclass{article}\n\\begin{document}\n\\notacommand\n\\end{document}' });
   const bad = await request(`${base}/${projectId}/compile`, 'POST', owner);
@@ -169,12 +186,15 @@ See \cite{euler1748}.
   assert.equal(failed.status, 'failed');
   assert.ok(failed.log.length > 0);
   assert.equal((await request(`${base}/${projectId}/builds/${bad.body.build.id}/pdf`, 'GET', owner)).response.status, 404);
+  assert.equal((await request(`http://127.0.0.1:${port}/api/v1/problems`, 'POST', owner, { ...problemPayload, title: 'Bài toán PDF biên dịch lỗi', latexBuildId: String(bad.body.build.id) })).response.status, 400);
+  await database.execute('UPDATE problems SET latex_build_id = NULL WHERE id = ?', [problemId]);
   assert.equal((await request(`${base}/${projectId}`, 'DELETE', owner)).response.status, 204);
   projects.splice(projects.indexOf(projectId), 1);
-  console.log('LaTeX build E2E: nhiều tệp, ZIP, PDF, lỗi biên dịch, log, phân quyền và xóa dự án đạt.');
+  console.log('LaTeX build E2E: ZIP, PDF, đính kèm bài, phân quyền, xuất bản và xóa dự án đạt.');
 } finally {
   for (const child of children) child.kill();
   await Promise.all(children.map((child) => child.exitCode !== null ? Promise.resolve() : Promise.race([new Promise((resolve) => child.once('exit', resolve)), new Promise((resolve) => setTimeout(resolve, 2000))])));
+  for (const id of problems) await database.execute('DELETE FROM problems WHERE id = ?', [id]);
   for (const id of projects) await database.execute('DELETE FROM latex_projects WHERE id = ?', [id]);
   for (const id of users) await database.execute('DELETE FROM users WHERE id = ?', [id]);
   await database.end();

@@ -3,6 +3,7 @@ export type PublicProblem = {
   slug: string;
   title: string;
   body: string;
+  latexPdfUrl: string | null;
   source: string | null;
   difficulty: string;
   publishedAt: string | null;

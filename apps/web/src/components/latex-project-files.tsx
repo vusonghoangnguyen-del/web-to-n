@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+
 export type LatexFileSummary = { id: string; path: string; mimeType: string; sizeBytes: number; updatedAt: string };
 export type LatexProjectData = { id: string; title: string; compiler: 'pdflatex' | 'xelatex' | 'lualatex'; updatedAt: string; mainFile: { id: string; path: string; content: string }; files: LatexFileSummary[] };
 
@@ -13,6 +14,8 @@ export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChang
   onRefresh: (project: LatexProjectData) => void;
   registerFlush: (flush: (() => Promise<boolean>) | null) => void;
 }) {
+  const fileDialog = useRef<HTMLDialogElement>(null);
+  const [fileAction,setFileAction] = useState<'create' | 'upload'>('create');
   const [selectedId, setSelectedId] = useState(project.mainFile.id);
   const [source, setSource] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -22,6 +25,7 @@ export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChang
   const [uploadPath, setUploadPath] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const latest = useRef({ selectedId, source, dirty });
+  const lineNumbers = useRef<HTMLPreElement>(null);
   const pending = useRef<Promise<boolean> | null>(null);
   const selected = project.files.find((item) => item.id === selectedId) || project.files[0];
   const isMain = selected?.id === project.mainFile.id;
@@ -124,13 +128,12 @@ export function LatexProjectFiles({ project, mainSource, onMainEdit, beforeChang
   }
 
   return <div className="latex-project-files">
-    <aside className="latex-files-sidebar"><strong>Tệp dự án</strong><nav>{project.files.map((file) => <button key={file.id} type="button" className={file.id === selected?.id ? 'active' : ''} onClick={() => void select(file)} disabled={busy}><span>{file.path}</span><small>{formatBytes(file.sizeBytes)}</small></button>)}</nav>
-      <div className="latex-files-add"><label>Tệp văn bản mới<input value={newPath} onChange={(event) => setNewPath(event.target.value)} placeholder="chapters/intro.tex"/></label><button type="button" disabled={busy} onClick={() => void addText()}>＋ Thêm tệp</button><label>Đường dẫn tải lên<input value={uploadPath} onChange={(event) => setUploadPath(event.target.value)} placeholder="images/hinh-1.png"/></label><label className="latex-upload-label">Tải ảnh hoặc tệp lên<input type="file" accept=".tex,.bib,.sty,.cls,.bst,.bbx,.cbx,.def,.cfg,.txt,.png,.jpg,.jpeg,.pdf,.eps" onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ''; }}/></label></div>
-    </aside>
-    <div className="latex-file-editor"><div className="latex-filebar"><strong>{selected?.path || 'main.tex'}</strong><span>{isMain ? 'Tự lưu' : dirty ? 'Đang lưu…' : 'Đã lưu'}</span>{!isMain && <><a href={`${base}/files/${selected.id}/raw`}>Tải tệp ↓</a><button type="button" className="danger-text" disabled={busy} onClick={() => void remove()}>{confirmDelete ? 'Xác nhận xóa' : 'Xóa tệp'}</button></>}</div>
+    <aside className="latex-files-sidebar"><header><strong>Tệp dự án</strong><button type="button" onClick={() => fileDialog.current?.showModal()}>+ Thêm</button></header><nav aria-label="Tệp dự án">{project.files.map((file) => <button title={file.path} key={file.id} type="button" className={file.id===selected?.id?'active':''} aria-pressed={file.id===selected?.id} onClick={() => void select(file)} disabled={busy}><span>{file.path}</span><small>{formatBytes(file.sizeBytes)}</small></button>)}</nav><button className="workbench-add-mobile" type="button" onClick={() => fileDialog.current?.showModal()}>Thêm tệp</button></aside>
+    <div className="latex-file-editor"><div className="latex-filebar"><details className="workbench-mobile-files"><summary>Tệp ▾</summary><nav>{project.files.map((file)=><button type="button" key={file.id} onClick={(event)=>{void select(file);const menu=event.currentTarget.closest("details");if(menu)menu.open=false;}}>{file.path}</button>)}<button type="button" onClick={()=>fileDialog.current?.showModal()}>+ Thêm tệp</button></nav></details><strong>{selected?.path || 'main.tex'}</strong><span>{isMain ? 'Tự lưu' : dirty ? 'Đang lưu…' : 'Đã lưu'}</span>{!isMain && <><a href={`${base}/files/${selected.id}/raw`}>Tải tệp ↓</a><button type="button" className="danger-text" disabled={busy} onClick={() => void remove()}>{confirmDelete ? 'Xác nhận xóa' : 'Xóa tệp'}</button></>}</div>
       {error && <p className="latex-error" role="alert">{error}</p>}
-      {isText ? <textarea className="latex-code" spellCheck={false} value={isMain ? mainSource : source} onChange={(event) => isMain ? onMainEdit(event.target.value) : (latest.current = { selectedId, source: event.target.value, dirty: true }, setSource(event.target.value), setDirty(true))} disabled={busy}/> : selected?.mimeType.startsWith('image/') ? <div className="latex-asset-preview"><img src={`${base}/files/${selected.id}/raw`} alt={selected.path}/></div> : <div className="latex-asset-preview"><p>Tệp {selected?.path} được dùng khi biên dịch.</p><a href={`${base}/files/${selected?.id}/raw`}>Tải tệp xuống</a></div>}
+      {isText ? <div className="latex-code-shell"><pre ref={lineNumbers} className="latex-line-numbers" aria-hidden="true">{Array.from({ length: Math.max(1, (isMain ? mainSource : source).split('\n').length) }, (_, index) => index + 1).join('\n')}</pre><textarea className="latex-code" wrap="off" spellCheck={false} value={isMain ? mainSource : source} onScroll={(event) => { if (lineNumbers.current) lineNumbers.current.scrollTop = event.currentTarget.scrollTop; }} onChange={(event) => isMain ? onMainEdit(event.target.value) : (latest.current = { selectedId, source: event.target.value, dirty: true }, setSource(event.target.value), setDirty(true))} disabled={busy}/></div> : selected?.mimeType.startsWith('image/') ? <div className="latex-asset-preview"><img src={`${base}/files/${selected.id}/raw`} alt={selected.path}/></div> : <div className="latex-asset-preview"><p>Tệp {selected?.path} được dùng khi biên dịch.</p><a href={`${base}/files/${selected?.id}/raw`}>Tải tệp xuống</a></div>}
     </div>
+    <dialog ref={fileDialog} className="workbench-dialog"><header><h2>{fileAction==='create'?'Tạo tệp':'Tải tệp lên'}</h2><button type="button" onClick={()=>fileDialog.current?.close()} aria-label="Đóng thêm tệp">✕</button></header><div className="workbench-form-switch"><button type="button" aria-pressed={fileAction==='create'} onClick={()=>setFileAction('create')}>Tạo tệp</button><button type="button" aria-pressed={fileAction==='upload'} onClick={()=>setFileAction('upload')}>Tải tệp lên</button></div>{fileAction==='create'?<><label>Đường dẫn tệp<input value={newPath} onChange={(event)=>setNewPath(event.target.value)} placeholder="chapters/intro.tex" /></label><button className="ink-button" type="button" disabled={busy} onClick={()=>void addText()}>Tạo tệp</button></>:<><label>Đường dẫn đích (không bắt buộc)<input value={uploadPath} onChange={(event)=>setUploadPath(event.target.value)} placeholder="images/hinh-1.png" /></label><label className="workbench-upload">Chọn tệp tải lên<input type="file" onChange={(event)=>{void upload(event.target.files?.[0]);event.target.value='';}} accept=".tex,.bib,.sty,.cls,.bst,.bbx,.cbx,.def,.cfg,.txt,.png,.jpg,.jpeg,.pdf,.eps" /></label></>}{error&&<p role="alert">{error}</p>}</dialog>
   </div>;
 }
 

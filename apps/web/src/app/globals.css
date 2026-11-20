@@ -106,7 +106,7 @@ button { color: inherit; font: inherit; }
 .problem-card h3 { margin: 18px 0 12px; font: 900 30px/1 var(--serif); letter-spacing: -.03em; overflow-wrap: anywhere; }
 .problem-card h3 a { text-decoration: none; }
 .problem-card h3 a:hover { text-decoration: underline; }
-.problem-card > p { opacity: .78; }
+.problem-card > .problem-teaser { opacity: .78; }
 .problem-card .card-stats { margin-top: auto; padding: 15px 0 10px; justify-content: flex-start; border-top: 1px solid currentColor; font: 10px var(--sans); }
 .problem-card .text-button { align-self: flex-start; }
 .section-action { padding-top: 28px; text-align: center; }
@@ -175,7 +175,9 @@ button { color: inherit; font: inherit; }
 .archive-card h2 { margin: 25px 0 13px; font: 900 34px/.98 var(--serif); letter-spacing: -.035em; overflow-wrap: anywhere; }
 .archive-card h2 a { text-decoration: none; }
 .archive-card h2 a:hover { text-decoration: underline; }
-.archive-card > p { opacity: .76; }
+.archive-card > .problem-teaser { opacity: .76; }
+.problem-teaser { min-width: 0; }
+.problem-teaser p { margin: 0; }
 .archive-author { margin-top: auto; padding-top: 25px; font: 10px var(--sans); text-transform: uppercase; }
 .archive-card-footer { margin-top: 13px; padding-top: 13px; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; border-top: 1px solid currentColor; font: 9px var(--sans); text-transform: uppercase; }
 .archive-card-footer a { font-weight: 800; }
@@ -209,6 +211,13 @@ button { color: inherit; font: inherit; }
 .problem-statement h2 { margin: 0 0 25px; font: 900 40px var(--serif); }
 .math-copy { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 19px; line-height: 1.8; }
 .detail-source { margin-top: 28px; display: inline-block; font: 800 10px var(--sans); text-underline-offset: 5px; text-transform: uppercase; }
+.detail-pdf-intro { margin: 0 0 14px; color: var(--muted); font-size: 17px; }
+.detail-pdf-toolbar { display: flex; flex-wrap: wrap; gap: 15px; margin: 0 0 12px; font: 800 11px var(--sans); text-transform: uppercase; }
+.detail-pdf-toolbar a { text-underline-offset: 4px; }
+.detail-pdf-frame { width: 100%; height: min(85vh, 1050px); min-height: 500px; display: block; border: 1px solid var(--line); background: white; }
+.detail-text-fallback { margin-top: 22px; border-top: 1px solid var(--line); }
+.detail-text-fallback summary { padding: 14px 0; cursor: pointer; font: 800 11px var(--sans); text-transform: uppercase; }
+.detail-text-fallback .math-copy { padding-top: 12px; }
 .detail-sidebar { align-self: start; padding: 25px; border: 1px solid var(--line); background: var(--gold); }
 .detail-sidebar > strong { font: 900 25px/1 var(--serif); }
 .detail-sidebar p { font-style: italic; }
@@ -357,6 +366,12 @@ button { color: inherit; font: inherit; }
 .editor-actions { padding: 20px 0; display: flex; align-items: center; gap: 12px; border-block: 1px solid var(--line); }.editor-actions button { cursor: pointer; }.editor-actions button:disabled { opacity: .5; }.editor-actions > span { margin-left: auto; color: var(--muted); font: 9px var(--sans); text-transform: uppercase; }
 .editor-message { padding: 12px; font: 11px var(--sans); }.editor-message.success { border: 1px solid var(--green); color: var(--green); }.editor-message.error { border: 1px solid var(--red); color: var(--red); }
 .editor-readonly { margin: 25px 0; padding: 22px; border: 1px solid var(--line); background: #e7dfc9; }.editor-readonly strong { font: 900 24px var(--serif); }.editor-readonly p { color: var(--muted); }.editor-readonly a { font: 800 9px var(--sans); text-transform: uppercase; }
+.editor-latex-attachment { margin: 0 0 30px; padding: 20px; border: 1px solid var(--line); background: #e7dfc9; }
+.editor-latex-attachment > strong { font: 800 11px var(--sans); text-transform: uppercase; }.editor-latex-attachment em { color: var(--muted); font-weight: 400; }
+.editor-latex-attachment p { margin: 9px 0 12px; color: var(--muted); font-size: 15px; }.editor-latex-attachment > div { display: grid; gap: 9px; }
+.editor-latex-attachment select { width: 100%; margin: 0; padding: 12px; border: 1px solid var(--line); background: var(--paper); font: 14px var(--sans); }
+.editor-latex-attachment a, .preview-pdf-link a { display: inline-block; margin-top: 12px; font: 800 10px var(--sans); text-transform: uppercase; text-underline-offset: 4px; }
+.latex-pdf-actions { flex-wrap: wrap; }
 .preview-sticky { position: sticky; top: 20px; }.editor-preview article { margin-top: 8px; padding: 28px; border: 1px solid var(--line); background: #e7dfc9; box-shadow: 9px 9px 0 var(--ink); }.editor-preview article > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--red); font: 8px var(--sans); text-transform: uppercase; }.editor-preview h2 { margin: 22px 0; font: 900 39px/.95 var(--serif); letter-spacing: -.035em; overflow-wrap: anywhere; }.preview-body { min-height: 230px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }.editor-preview article > small { margin-top: 25px; display: block; color: var(--muted); font: 9px var(--sans); overflow-wrap: anywhere; }
 .revision-history { margin-top: 38px; border-top: 2px solid var(--ink); }.revision-history h3 { font: 900 22px var(--serif); }.revision-history details { border-bottom: 1px solid var(--line); }.revision-history summary { padding: 12px 0; display: flex; justify-content: space-between; gap: 12px; cursor: pointer; font: 700 10px var(--sans); }.revision-history time, .revision-history p { color: var(--muted); font: 9px var(--sans); }.revision-history p { margin-top: 0; text-transform: uppercase; }
 .editor-loading, .editor-fatal { min-height: 570px; display: grid; place-items: center; align-content: center; text-align: center; }.editor-loading span { width: 48px; height: 48px; border: 4px solid #ccc; border-top-color: var(--ink); border-radius: 50%; animation: profile-spin .8s linear infinite; }.editor-loading p { font: 10px var(--sans); text-transform: uppercase; }.editor-fatal h1 { margin-bottom: 0; font: 900 50px var(--serif); }.editor-fatal p { color: var(--muted); }
@@ -462,6 +477,7 @@ button { color: inherit; font: inherit; }
   .detail-kicker, .detail-byline { align-items: flex-start; flex-direction: column; }
   .detail-layout { grid-template-columns: 1fr; gap: 35px; }
   .problem-statement { grid-template-columns: 1fr; }
+  .detail-pdf-frame { min-height: 420px; height: 70vh; }
   .detail-actions { align-items: stretch; flex-direction: column; }
   .detail-actions span { min-height: 17px; margin-left: 0; text-align: center; }
   .verified-solutions-section, .discussion-section, .contribution-section { padding-inline: 18px; }
