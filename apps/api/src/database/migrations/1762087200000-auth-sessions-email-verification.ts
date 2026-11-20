@@ -4,6 +4,11 @@ export class AuthSessionsEmailVerification1762087200000 implements MigrationInte
   name = 'AuthSessionsEmailVerification1762087200000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
+    // db:setup from the legacy app already creates these objects. Treat that
+    // schema as applied so a fresh Windows installation can continue forward.
+    if (await queryRunner.hasColumn('users', 'email_verified_at')
+      && await queryRunner.hasTable('sessions')
+      && await queryRunner.hasTable('email_verification_tokens')) return;
     await queryRunner.query(`ALTER TABLE users
       MODIFY role ENUM('reader', 'editor', 'moderator', 'admin') NOT NULL DEFAULT 'reader',
       MODIFY status ENUM('pending_verification', 'active', 'suspended', 'disabled') NOT NULL DEFAULT 'active',

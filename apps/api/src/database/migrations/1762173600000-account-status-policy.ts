@@ -4,6 +4,10 @@ export class AccountStatusPolicy1762173600000 implements MigrationInterface {
   name = 'AccountStatusPolicy1762173600000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
+    if (await queryRunner.hasColumn('users', 'username')
+      && await queryRunner.hasColumn('users', 'banned_at')
+      && await queryRunner.hasColumn('users', 'banned_by')
+      && await queryRunner.hasColumn('users', 'ban_reason')) return;
     await queryRunner.query('ALTER TABLE users ADD COLUMN username VARCHAR(30) NULL AFTER id');
     await queryRunner.query("UPDATE users SET username = CONCAT('user_', id) WHERE username IS NULL");
     await queryRunner.query(`ALTER TABLE users
