@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, Delete, Get, Header, HttpCode, H
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AccountRateLimit, AccountThrottleGuard } from '../auth/guards/account-throttle.guard';
 import { SessionGuard } from '../auth/guards/session.guard';
 import { PublicUser } from '../auth/auth.types';
 import { CreateLatexProjectDto } from './dto/create-latex-project.dto';
@@ -92,6 +93,8 @@ export class LatexController {
   }
 
   @Post(':id/compile')
+  @UseGuards(AccountThrottleGuard)
+  @AccountRateLimit(10, 60 * 60_000)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Đưa tài liệu LaTeX vào hàng đợi biên dịch PDF' })
   compile(@CurrentUser() user: PublicUser, @Param('id') id: string) {

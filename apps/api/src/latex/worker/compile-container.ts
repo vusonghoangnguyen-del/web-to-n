@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { copyFile, mkdir, mkdtemp, open, rm, stat, writeFile } from 'node:fs/promises';
+import { chown, copyFile, mkdir, mkdtemp, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -19,7 +19,7 @@ const modes: Record<LatexCompiler, string> = {
 const secureCommands = '$pdflatex=q/pdflatex -no-shell-escape %O %S/; $xelatex=q/xelatex -no-shell-escape %O %S/; $lualatex=q/lualatex -no-shell-escape %O %S/;';
 
 export async function compileContainer(input: CompileInput): Promise<CompileResult> {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'to-toan-tex-'));
+  const directory = await mkdtemp(path.join(process.env.LATEX_WORK_DIR || os.tmpdir(), 'to-toan-tex-'));
   const containerName = `to-toan-tex-${input.buildId}-${randomUUID().slice(0, 8)}`;
   try {
     if (input.archive) {
@@ -31,6 +31,10 @@ export async function compileContainer(input: CompileInput): Promise<CompileResu
       }
     } else {
       await writeFile(path.join(directory, 'main.tex'), input.source, 'utf8');
+    }
+    if (process.env.LATEX_EXECUTION_MODE === 'shared') {
+      // The offline compiler container runs as uid 1000 and only sees this work volume.
+      await chown(directory, 1000, 1000);
     }
     const args = [
       'run', '--rm', '--pull=never', '--name', containerName,
@@ -46,7 +50,9 @@ export async function compileContainer(input: CompileInput): Promise<CompileResu
       '-halt-on-error', '-file-line-error', '-e', secureCommands, 'main.tex',
     ];
     const timeoutMs = input.compiler === LatexCompiler.LuaLatex ? latexLuaTimeoutMs : latexTimeoutMs;
-    const execution = await runDocker(args, containerName, timeoutMs);
+    const execution = process.env.LATEX_EXECUTION_MODE === 'shared'
+      ? await runShared(directory, input.compiler, timeoutMs)
+      : await runDocker(args, containerName, timeoutMs);
     const texLog = await readLog(path.join(directory, 'main.log'));
     const log = [execution.output, texLog].filter(Boolean).join('\n\n--- main.log ---\n').slice(0, latexMaxLogChars);
     if (execution.timedOut) return failure(`Biên dịch quá ${timeoutMs / 1000} giây và đã bị dừng.`, log);
@@ -73,6 +79,24 @@ export async function compileContainer(input: CompileInput): Promise<CompileResu
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+async function runShared(directory: string, compiler: LatexCompiler, timeoutMs: number) {
+  await writeFile(path.join(directory, '.mode'), compiler, 'utf8');
+  await writeFile(path.join(directory, '.ready'), '', 'utf8');
+  const deadline = Date.now() + timeoutMs + 5_000;
+  while (Date.now() < deadline) {
+    try {
+      await stat(path.join(directory, '.done'));
+      const exitCode = Number(await readFile(path.join(directory, '.exit'), 'utf8'));
+      const output = await readLog(path.join(directory, 'main.stdout'));
+      return { exitCode, timedOut: exitCode === 124 || exitCode === 137, output };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return { exitCode: null, timedOut: true, output: 'Compiler service không phản hồi trong thời gian cho phép.' };
 }
 
 function failure(errorMessage: string, log: string): CompileResult {

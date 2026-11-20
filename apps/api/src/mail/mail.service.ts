@@ -65,4 +65,20 @@ export class MailService {
     await writeFile(previewPath, html, 'utf8');
     this.logger.log(`Đã lưu email xác minh local tại ${previewPath}`);
   }
+
+  async sendPasswordResetEmail(input: VerificationEmail): Promise<void> {
+    const url = `${this.config.getOrThrow<string>('APP_WEB_URL')}/dat-lai-mat-khau?token=${encodeURIComponent(input.token)}`;
+    const subject = 'Đặt lại mật khẩu Tờ Toán';
+    const text = `Chào ${input.name},\n\nMở liên kết để đặt lại mật khẩu:\n${url}\n\nLiên kết có hiệu lực 30 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.`;
+    const html = `<!doctype html><html lang="vi"><meta charset="utf-8"><body><h1>Đặt lại mật khẩu Tờ Toán</h1><p>Chào ${escapeHtml(input.name)},</p><p><a href="${escapeHtml(url)}">Đặt lại mật khẩu</a></p><p>Liên kết có hiệu lực 30 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p></body></html>`;
+    if (this.transporter) {
+      await this.transporter.sendMail({ from: this.config.getOrThrow<string>('MAIL_FROM'), to: input.email, subject, text, html });
+      return;
+    }
+    const previewDirectory = path.resolve(__dirname, '../../../../storage/mail-preview');
+    await mkdir(previewDirectory, { recursive: true });
+    const previewPath = path.join(previewDirectory, `${randomUUID()}.html`);
+    await writeFile(previewPath, html, 'utf8');
+    this.logger.log(`Đã lưu email đặt lại mật khẩu local tại ${previewPath}`);
+  }
 }

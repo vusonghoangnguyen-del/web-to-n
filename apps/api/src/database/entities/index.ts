@@ -17,6 +17,7 @@ import { UserEntity } from './user.entity';
 import { VideoEntity } from './video.entity';
 import { SessionEntity } from './session.entity';
 import { EmailVerificationTokenEntity } from './email-verification-token.entity';
+import { PasswordResetTokenEntity } from './password-reset-token.entity';
 import { LatexProjectEntity } from './latex-project.entity';
 import { LatexFileEntity } from './latex-file.entity';
 import { LatexBuildEntity } from './latex-build.entity';
@@ -41,6 +42,7 @@ export const databaseEntities = [
   NotificationEntity,
   SessionEntity,
   EmailVerificationTokenEntity,
+  PasswordResetTokenEntity,
   LatexProjectEntity,
   LatexFileEntity,
   LatexBuildEntity,
@@ -66,6 +68,7 @@ export {
   VideoEntity,
   SessionEntity,
   EmailVerificationTokenEntity,
+  PasswordResetTokenEntity,
   LatexProjectEntity,
   LatexFileEntity,
   LatexBuildEntity,

@@ -14,6 +14,7 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PublicUser } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AccountRateLimit, AccountThrottleGuard } from '../auth/guards/account-throttle.guard';
 import { SessionGuard } from '../auth/guards/session.guard';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -33,7 +34,8 @@ export class CommentsController {
   }
 
   @Post('problems/:problemId/comments')
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, AccountThrottleGuard)
+  @AccountRateLimit(30, 10 * 60_000)
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Bình luận hoặc trả lời bài toán' })
   create(

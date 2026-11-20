@@ -14,6 +14,7 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PublicUser } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AccountRateLimit, AccountThrottleGuard } from '../auth/guards/account-throttle.guard';
 import { SessionGuard } from '../auth/guards/session.guard';
 import { CreateProblemDto } from './dto/create-problem.dto';
 import { ListProblemsDto } from './dto/list-problems.dto';
@@ -54,7 +55,8 @@ export class ProblemsController {
   }
 
   @Post()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, AccountThrottleGuard)
+  @AccountRateLimit(10, 60 * 60_000)
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Tạo bản nháp hoặc gửi bài toán để duyệt' })
   create(@CurrentUser() user: PublicUser, @Body() dto: CreateProblemDto) {

@@ -76,6 +76,7 @@ const username = `test_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
 const password = 'Test-8!x';
 const output = [];
 let previewFile;
+let resetPreviewFile;
 const existingPreviews = await previewFiles();
 const database = await mysql.createConnection({
   host: process.env.DB_HOST,
@@ -195,13 +196,51 @@ try {
   assert.equal(login.response.status, 200);
   assert.match(login.response.headers.getSetCookie()[0], /HttpOnly/i);
 
+  const resetPreviews = await previewFiles();
+  const unknownReset = await jsonRequest(`${baseUrl}/api/v1/auth/password/forgot`, {
+    method: 'POST', body: JSON.stringify({ email: `missing-${randomUUID()}@example.test` }),
+  });
+  const requestedReset = await jsonRequest(`${baseUrl}/api/v1/auth/password/forgot`, {
+    method: 'POST', body: JSON.stringify({ email }),
+  });
+  assert.equal(unknownReset.response.status, 200);
+  assert.equal(requestedReset.response.status, 200);
+  assert.equal(unknownReset.body.message, requestedReset.body.message);
+  resetPreviewFile = await waitForPreview(resetPreviews);
+  const resetHtml = await readFile(path.join(previewDirectory, resetPreviewFile), 'utf8');
+  const resetToken = resetHtml.match(/token=([A-Za-z0-9_-]+)/)?.[1];
+  assert.ok(resetToken);
+  const newPassword = 'New-8!password';
+  const changed = await jsonRequest(`${baseUrl}/api/v1/auth/password/reset`, {
+    method: 'POST',
+    body: JSON.stringify({ token: resetToken, password: newPassword, passwordConfirmation: newPassword }),
+  });
+  assert.equal(changed.response.status, 200);
+  const reused = await jsonRequest(`${baseUrl}/api/v1/auth/password/reset`, {
+    method: 'POST',
+    body: JSON.stringify({ token: resetToken, password: newPassword, passwordConfirmation: newPassword }),
+  });
+  assert.equal(reused.response.status, 400);
+  const oldPassword = await jsonRequest(`${baseUrl}/api/v1/auth/login`, {
+    method: 'POST', body: JSON.stringify({ email, password }),
+  });
+  assert.equal(oldPassword.response.status, 401);
+  const oldSession = await jsonRequest(`${baseUrl}/api/v1/auth/me`, {
+    headers: { Cookie: login.response.headers.getSetCookie()[0]?.split(';')[0] },
+  });
+  assert.equal(oldSession.response.status, 401);
+  const newLogin = await jsonRequest(`${baseUrl}/api/v1/auth/login`, {
+    method: 'POST', body: JSON.stringify({ email, password: newPassword }),
+  });
+  assert.equal(newLogin.response.status, 200);
+
   await database.execute(
     "UPDATE users SET status = 'banned', banned_at = CURRENT_TIMESTAMP, ban_reason = 'E2E test' WHERE email = ?",
     [email],
   );
   const bannedLogin = await jsonRequest(`${baseUrl}/api/v1/auth/login`, {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password: newPassword }),
   });
   assert.equal(bannedLogin.response.status, 401);
   const duplicateBannedEmail = await jsonRequest(`${baseUrl}/api/v1/auth/register`, {
@@ -216,7 +255,7 @@ try {
   });
   assert.equal(duplicateBannedEmail.response.status, 409);
 
-  process.stdout.write('Auth E2E thành công: mật khẩu 8 ký tự, đăng ký, email, xác minh, session, đăng xuất, đăng nhập, cấm tài khoản và cầu nối Express.\n');
+  process.stdout.write('Auth E2E thành công: đăng ký, xác minh, đăng nhập, đặt lại mật khẩu, thu hồi session, cấm tài khoản và cầu nối Express.\n');
 } finally {
   child.kill();
   legacyChild.kill();
@@ -231,4 +270,5 @@ try {
   await database.execute('DELETE FROM users WHERE email = ?', [email]);
   await database.end();
   if (previewFile) await unlink(path.join(previewDirectory, previewFile)).catch(() => undefined);
+  if (resetPreviewFile) await unlink(path.join(previewDirectory, resetPreviewFile)).catch(() => undefined);
 }

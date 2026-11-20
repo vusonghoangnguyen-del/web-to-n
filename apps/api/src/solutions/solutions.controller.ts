@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PublicUser } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AccountRateLimit, AccountThrottleGuard } from '../auth/guards/account-throttle.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SessionGuard } from '../auth/guards/session.guard';
@@ -33,7 +34,8 @@ export class SolutionsController {
   }
 
   @Post('problems/:problemId/solutions')
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, AccountThrottleGuard)
+  @AccountRateLimit(10, 60 * 60_000)
   @ApiCookieAuth()
   create(@Param('problemId') problemId: string, @CurrentUser() user: PublicUser, @Body() dto: CreateSolutionDto) {
     return this.solutions.create(problemId, user, dto);

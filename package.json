@@ -16,6 +16,7 @@
     "dev:nest": "npm run dev --workspace=@to-toan/api",
     "dev:worker": "npm run dev:worker --workspace=@to-toan/api",
     "worker:latex": "npm run worker:latex --workspace=@to-toan/api",
+    "latex:prune": "npm run latex:prune --workspace=@to-toan/api --",
     "build": "npm run build --workspaces --if-present",
     "build:api": "npm run build --workspace=@to-toan/api",
     "preview": "npm run preview --workspace=@to-toan/legacy-web",

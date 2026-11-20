@@ -18,6 +18,7 @@ try {
     'latex_projects',
     'newsletter_subscriptions',
     'notifications',
+    'password_reset_tokens',
     'problem_categories',
     'problem_follows',
     'problem_reactions',
@@ -118,6 +119,13 @@ try {
       (migration) =>
         String(migration.timestamp) === '1763683200000' &&
         migration.name === 'LatexBuilds1763683200000',
+    ),
+  );
+  assert.ok(
+    migrations.some(
+      (migration) =>
+        String(migration.timestamp) === '1763856000000' &&
+        migration.name === 'PasswordReset1763856000000',
     ),
   );
 

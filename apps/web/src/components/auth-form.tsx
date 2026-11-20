@@ -79,6 +79,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       {isRegister && <label className="terms-check"><input name="acceptTerms" type="checkbox" required /><span>Tôi đồng ý với điều khoản sử dụng và quy tắc cộng đồng.</span></label>}
       <button className="ink-button" type="submit" disabled={submitting}>{submitting ? 'Đang xử lý…' : isRegister ? 'Tạo tài khoản →' : 'Đăng nhập →'}</button>
       <p className="auth-message" role="status">{message}</p>
+      {!isRegister && <Link className="auth-resend-link" href="/quen-mat-khau">Quên mật khẩu?</Link>}
       {unverifiedEmail && <Link className="auth-resend-link" href="/kiem-tra-email">Gửi lại email xác minh →</Link>}
     </form>
   );

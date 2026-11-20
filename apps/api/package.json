@@ -9,6 +9,7 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "worker:latex": "node dist/latex/worker/main.js",
+    "latex:prune": "node scripts/prune-latex-builds.mjs",
     "check": "tsc --noEmit && node --check test/health.e2e.mjs && node --check test/schema.e2e.mjs && node --check test/auth.e2e.mjs && node --check test/problems.e2e.mjs && node --check test/comments.e2e.mjs && node --check test/solutions.e2e.mjs && node --check test/engagement.e2e.mjs && node --check test/moderation.e2e.mjs && node --check test/latex.e2e.mjs && node --check test/latex-build.e2e.mjs && node --check scripts/typeorm-admin.mjs",
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "npm run build && node test/health.e2e.mjs && node test/schema.e2e.mjs && node test/auth.e2e.mjs && node test/problems.e2e.mjs && node test/comments.e2e.mjs && node test/solutions.e2e.mjs && node test/engagement.e2e.mjs && node test/moderation.e2e.mjs && node test/latex.e2e.mjs",

@@ -13,6 +13,7 @@ import { ModerationAudit1762605600000 } from './migrations/1762605600000-moderat
 import { LatexProjects1763596800000 } from './migrations/1763596800000-latex-projects';
 import { LatexBuilds1763683200000 } from './migrations/1763683200000-latex-builds';
 import { LatexMultipleFiles1763769600000 } from './migrations/1763769600000-latex-multiple-files';
+import { PasswordReset1763856000000 } from './migrations/1763856000000-password-reset';
 
 export function createDatabaseOptions(config: ConfigService): TypeOrmModuleOptions {
   return {
@@ -37,6 +38,7 @@ export function createDatabaseOptions(config: ConfigService): TypeOrmModuleOptio
       LatexProjects1763596800000,
       LatexBuilds1763683200000,
       LatexMultipleFiles1763769600000,
+      PasswordReset1763856000000,
     ],
     migrationsTableName: 'typeorm_migrations',
     synchronize: false,

@@ -18,6 +18,8 @@ import { LEGACY_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME } from './auth.constant
 import { ClientContext, PublicUser } from './auth.types';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
+import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -71,6 +73,22 @@ export class AuthController {
     const result = await this.auth.login(dto, this.clientContext(request));
     this.setSessionCookie(response, result.sessionToken);
     return { user: result.user };
+  }
+
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60 * 60_000 } })
+  @ApiOperation({ summary: 'Gửi liên kết đặt lại mật khẩu nếu tài khoản tồn tại' })
+  forgotPassword(@Body() dto: PasswordResetRequestDto): Promise<{ message: string }> {
+    return this.auth.requestPasswordReset(dto.email);
+  }
+
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 15 * 60_000 } })
+  @ApiOperation({ summary: 'Đặt lại mật khẩu bằng liên kết email một lần' })
+  resetPassword(@Body() dto: PasswordResetConfirmDto): Promise<{ message: string }> {
+    return this.auth.resetPassword(dto.token, dto.password, dto.passwordConfirmation);
   }
 
   @Post('logout')

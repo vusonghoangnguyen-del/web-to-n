@@ -1,0 +1,9 @@
+{$APP_DOMAIN} {
+    encode zstd gzip
+    handle /api/v1/* {
+        reverse_proxy api:3001
+    }
+    handle {
+        reverse_proxy web:5174
+    }
+}
