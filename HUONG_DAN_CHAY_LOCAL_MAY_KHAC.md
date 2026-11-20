@@ -124,6 +124,14 @@ Trước đó phải bật Redis bằng lệnh Compose ở bước 4. API dùng 
 3. Đăng ký/đăng nhập. Với `MAIL_MODE=preview` (mặc định trên local), email xác minh không gửi ra Internet mà được lưu thành file HTML trong `storage/mail-preview`. Mở file mới nhất và bấm liên kết xác minh.
 4. Vào **Soạn bài**, tạo dự án, bấm **Biên dịch PDF**. Nếu bản xem trước PDF xuất hiện thì API, Redis, worker và Docker đã chạy đủ.
 
+Muốn trang chủ có sẵn bốn bài viết mẫu sau khi tạo database mới, chạy **một lần sau migration**:
+
+```powershell
+npm.cmd run db:seed
+```
+
+Lệnh này chỉ thêm bài mẫu còn thiếu; chạy lại không nhân đôi và không thay đổi bài của người dùng. Bộ mẫu là nội dung tự viết, không gồm tài khoản hay tài liệu cá nhân từ máy khác.
+
 Muốn cấp quyền quản trị cho tài khoản đã đăng ký, chạy lệnh sau tại thư mục dự án, thay địa chỉ email cho đúng:
 
 ```powershell

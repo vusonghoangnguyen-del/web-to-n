@@ -23,6 +23,7 @@
     "start:next": "npm run start --workspace=@to-toan/web",
     "start": "npm run start --workspace=@to-toan/legacy-api",
     "db:setup": "npm run db:setup --workspace=@to-toan/legacy-api",
+    "db:seed": "npm run db:seed --workspace=@to-toan/legacy-api",
     "db:migrate": "npm run db:migrate --workspace=@to-toan/legacy-api",
     "db:backup": "npm run db:backup --workspace=@to-toan/legacy-api",
     "admin:grant": "npm run admin:grant --workspace=@to-toan/legacy-api --",
