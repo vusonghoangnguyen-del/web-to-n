@@ -2,37 +2,36 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MathContent } from '@/components/math-content';
 import { NewsletterForm } from '@/components/newsletter-form';
-import { ProblemListItem } from '@/components/problem-list-item';
-import { ProblemSearch } from '@/components/problem-search';
+import { PdfCover } from '@/components/pdf-cover';
 import { UiIcon } from '@/components/ui-icon';
-import { getHomeData, problemHref } from '@/lib/public-api';
+import { getHomeData, problemHref, type PublicProblem } from '@/lib/public-api';
 import { summarizeProblemBody } from '@/lib/problem-summary';
-
-export const metadata: Metadata = { title: 'Trang nhất', description: 'Khám phá bài viết, lời giải và video bài giảng từ cộng đồng Tờ Toán.' };
-export const revalidate = 60;
-const categories = [['dai-so', 'Đại số'], ['hinh-hoc', 'Hình học'], ['so-hoc', 'Số học'], ['to-hop', 'Tổ hợp'], ['logic', 'Logic'], ['xac-suat', 'Xác suất']] as const;
-
-export default async function HomePage() {
-  const { problems, totalProblems, featuredSolutions, videos, problemsAvailable } = await getHomeData();
-  const [lead, ...recent] = problems;
-  const expression = lead?.body.match(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$(?!\$)((?:\\.|[^$\\])+?)\$/);
-  const leadExpression = expression && (expression[1] ?? expression[2] ?? expression[3]);
-  return <div className="catalog-home page-shell">
-    <header className="catalog-home-heading"><h1>Trang nhất</h1><ProblemSearch id="home-search" /></header>
-    <div className="catalog-home-layout"><section aria-label="Bài viết mới">
-      {lead ? <article className="catalog-lead">
-        <div className="catalog-lead-meta"><span className="catalog-topic">{lead.categories.map((category) => category.name).join(', ') || 'Bài viết'}</span><span>{lead.difficulty}</span><span>{lead.commentCount} thảo luận</span></div>
-        <h2><Link href={problemHref(lead)}>{lead.title}</Link></h2><MathContent content={summarizeProblemBody(lead.body, 280)} className="catalog-lead-excerpt" />
-        {leadExpression && <MathContent content={'$$' + leadExpression + '$$'} className="catalog-lead-equation" />}
-        <div className="catalog-item-footer"><span>{lead.author.name} · <time dateTime={lead.publishedAt ?? lead.createdAt}>{new Intl.DateTimeFormat('vi-VN').format(new Date(lead.publishedAt ?? lead.createdAt))}</time></span><Link href={problemHref(lead)}>Đọc và thảo luận <UiIcon name="arrow-right" /></Link></div>
-      </article> : <div className="catalog-empty"><h2>{problemsAvailable ? 'Chưa có bài viết được xuất bản' : 'Chưa tải được bài viết'}</h2><p>{problemsAvailable ? 'Các bài được duyệt sẽ xuất hiện tại đây.' : 'Vui lòng tải lại trang sau ít phút.'}</p><Link className="outline-button" href={problemsAvailable ? '/soan-bai' : '/'}>{problemsAvailable ? 'Gửi bài viết' : 'Thử lại'}</Link></div>}
-      {recent.slice(0, 7).map((problem) => <ProblemListItem problem={problem} key={problem.id} />)}
-      {totalProblems > problems.slice(0, 8).length && <div className="catalog-more"><Link className="outline-button" href="/bai-toan">Xem toàn bộ kho bài <UiIcon name="arrow-right" /></Link></div>}
-    </section><aside className="catalog-home-rail">
-      <section><h2>Chuyên mục</h2><nav className="catalog-topic-links" aria-label="Chuyên mục bài viết">{categories.map(([slug, name]) => <Link key={slug} href={'/bai-toan?category=' + slug}>{name}<UiIcon name="arrow-right" /></Link>)}</nav></section>
-      <section id="loi-giai"><h2>Lời giải mới</h2>{featuredSolutions.length ? featuredSolutions.slice(0, 3).map((solution) => <article key={solution.id} className="catalog-solution"><div className="catalog-solution-meta"><span className="status-verified">Đã kiểm chứng</span><span>{solution.author_name}</span></div><h3><Link href={'/bai-toan/' + encodeURIComponent(solution.problem_slug) + '#loi-giai'}>{solution.problem_title}</Link></h3><MathContent content={summarizeProblemBody(solution.excerpt, 230)} /><Link className="catalog-read-link" href={'/bai-toan/' + encodeURIComponent(solution.problem_slug) + '#loi-giai'}>Đọc lời giải <UiIcon name="arrow-right" /></Link></article>) : <p className="catalog-empty-copy">Chưa có lời giải được kiểm chứng. <Link href="/bai-toan">Chọn bài để giải <UiIcon name="arrow-right" /></Link></p>}</section>
-      <section id="video"><h2>Video bài giảng</h2>{videos.length ? videos.slice(0, 3).map((video) => <article className="catalog-video" key={video.id}><a className="catalog-video-preview" href={video.url} target="_blank" rel="noopener noreferrer" aria-label={'Xem video ' + video.title}><span className="catalog-video-title">{video.title}</span><span className="catalog-video-play"><UiIcon name="play" /></span><span className="catalog-video-duration">{video.duration}</span></a><span className="catalog-topic">{video.topic}</span><h3><a href={video.url} target="_blank" rel="noopener noreferrer">{video.title}</a></h3></article>) : <p className="catalog-empty-copy">Chưa có video bài giảng.</p>}</section>
-    </aside></div>
-    <section className="catalog-newsletter"><div><h2>Nhận tin từ Tờ Toán</h2><p>Thông báo khi bản tin được triển khai.</p></div><NewsletterForm /></section>
-  </div>;
+export const metadata:Metadata={title:'Trang nhất',description:'Bài viết, bài toán, lời giải và video từ cộng đồng Tờ Toán.'};
+export const revalidate=60;
+const categories=[['dai-so','Đại số'],['hinh-hoc','Hình học'],['so-hoc','Số học'],['to-hop','Tổ hợp'],['logic','Logic'],['xac-suat','Xác suất']] as const;
+const date=(value:string)=>new Intl.DateTimeFormat('vi-VN').format(new Date(value));
+function Article({problem,lead=false}:{problem:PublicProblem;lead?:boolean}){
+ const onlyPdf=Boolean(problem.latexPdfUrl)&&/^xem\s+(?:tệp|file)\s+pdf[.!]?$/i.test(problem.body.trim());
+ return <article className={lead?'newspaper-lead':'newspaper-story'}>
+ <div className="newspaper-story-meta"><span>{problem.categories.map(c=>c.name).join(', ')||'Toán học'}</span><span>{problem.difficulty}</span></div>
+ {lead?<h1><Link href={problemHref(problem)}>{problem.title}</Link></h1>:<h2><Link href={problemHref(problem)}>{problem.title}</Link></h2>}
+ <div className="newspaper-story-content"><div>{!onlyPdf&&<MathContent content={summarizeProblemBody(problem.body,lead?360:190)} className="newspaper-excerpt" />}{onlyPdf&&<p className="newspaper-document-label">Tài liệu PDF</p>}<p className="newspaper-byline">{problem.author.name}<time dateTime={problem.publishedAt??problem.createdAt}>{date(problem.publishedAt??problem.createdAt)}</time></p><Link className="newspaper-read" href={problemHref(problem)}>Đọc bài <UiIcon name="arrow-right" /></Link></div>{lead&&problem.latexPdfUrl&&<Link className="newspaper-document" href={problemHref(problem)} aria-label={'Đọc '+problem.title}><PdfCover url={problem.latexPdfUrl}/></Link>}</div>
+ </article>;
+}
+export default async function HomePage(){
+ const {problems,totalProblems,featuredSolutions,videos,problemsAvailable}=await getHomeData();const [lead,...recent]=problems;
+ return <div className="newspaper-home">
+ <nav className="newspaper-categories" aria-label="Chuyên mục">{categories.map(([slug,name])=><Link key={slug} href={'/bai-toan?category='+slug}>{name}</Link>)}</nav>
+ <div className="newspaper-columns"><section className="newspaper-articles" aria-label="Bài viết mới">
+ {lead?<Article problem={lead} lead/>:<div className="newspaper-empty"><h1>{problemsAvailable?'Chưa có bài viết được xuất bản':'Chưa tải được bài viết'}</h1><p>{problemsAvailable?'Các bài được duyệt sẽ xuất hiện tại đây.':'Vui lòng thử tải lại trang sau ít phút.'}</p><Link href={problemsAvailable?'/soan-bai':'/'}>{problemsAvailable?'Gửi bài':'Thử lại'} →</Link></div>}
+ {recent.length>0&&<div className="newspaper-subarticles">{recent.slice(0,2).map(p=><Article key={p.id} problem={p}/>)}</div>}
+ {recent.length>2&&<div className="newspaper-bottom-articles">{recent.slice(2,6).map(p=><Article key={p.id} problem={p}/>)}</div>}
+ <div className="newspaper-archive-link"><Link href="/bai-toan">Xem tất cả bài viết <UiIcon name="arrow-right"/></Link>{problemsAvailable&&<span>{totalProblems} bài viết</span>}</div>
+ </section>
+ <aside className="newspaper-sidebar"><section id="loi-giai"><h2>Lời giải mới</h2>{featuredSolutions.length?featuredSolutions.slice(0,2).map(s=><article className="newspaper-solution" key={s.id}><p className="newspaper-proof">Đã kiểm chứng</p><h3><Link href={'/bai-toan/'+encodeURIComponent(s.problem_slug)+'#loi-giai'}>{s.problem_title}</Link></h3><MathContent content={summarizeProblemBody(s.excerpt,220)}/><p className="newspaper-byline">{s.author_name}</p><Link className="newspaper-read" href={'/bai-toan/'+encodeURIComponent(s.problem_slug)+'#loi-giai'}>Đọc lời giải <UiIcon name="arrow-right"/></Link></article>):<div className="newspaper-empty-copy"><p>Chưa có lời giải được kiểm chứng.</p><Link href="/bai-toan">Chọn bài để giải →</Link></div>}</section>
+ <section id="video"><h2>Video bài giảng</h2>{videos.length?videos.slice(0,3).map(v=><article className="newspaper-video" key={v.id}><a className="newspaper-play" href={v.url} target="_blank" rel="noopener noreferrer" aria-label={'Xem video '+v.title}><UiIcon name="play"/></a><div><p className="newspaper-video-meta">{v.topic}<span>{v.duration}</span></p><h3><a href={v.url} target="_blank" rel="noopener noreferrer">{v.title}</a></h3><a className="newspaper-read" href={v.url} target="_blank" rel="noopener noreferrer">Xem video ↗</a></div></article>):<p className="newspaper-empty-copy">Chưa có video bài giảng.</p>}</section>
+ <section className="newspaper-contribute"><h2>Gửi bài cho Tờ Toán</h2><p>Chia sẻ bài viết, bài toán hoặc lời giải của bạn với cộng đồng.</p><Link className="newspaper-read" href="/soan-bai">Soạn bài <UiIcon name="arrow-right"/></Link></section>
+ </aside></div>
+ <section className="newspaper-newsletter"><div><h2>Nhận tin từ Tờ Toán</h2><p>Thông báo khi bản tin được triển khai.</p></div><NewsletterForm/></section>
+ </div>;
 }
